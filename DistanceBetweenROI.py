@@ -77,9 +77,9 @@ class DistanceBetweenROI:
                                                         end_seed)
         distance_between_roi *= pix_dim[0]
 
-        print 'Maximum inside vessel length between ROIs: {} ' \
+        print( 'Maximum inside vessel length between ROIs: {} ' \
               '(approximate mm).'\
-              .format(np.max(end_data * distance_between_roi))
+              .format(np.max(end_data * distance_between_roi)) )
 
         nib.save(nib.Nifti1Image(distance_between_roi, img.get_affine(),
                                  img.get_header()), self._output)
@@ -109,8 +109,8 @@ class DistanceBetweenROI:
             seed = self.search_nearest_point_from_roi(mask, roi_data,
                                                       resolution)
 
-            print 'Your ROI does not intersect the binary mask, but nearest mask ' \
-                  'point from ROI is {}.'.format(seed)
+            print( 'Your ROI does not intersect the binary mask, but nearest mask ' \
+                  'point from ROI is {}.'.format(seed))
         else:
             seed = ndimage.measurements.center_of_mass(intersect)
 
@@ -223,8 +223,8 @@ class DistanceBetweenROI:
                 'Flood fill did not reach the end ROI. The ROI might '
                 'be disconnected from the start ROI.')
         else:
-            print 'Flood fill have reached a point in the end ROI, but not its' \
-                  ' center of mass.'
+            print( 'Flood fill have reached a point in the end ROI, but not its' \
+                  ' center of mass.')
 
         return result
 

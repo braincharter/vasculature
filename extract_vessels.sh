@@ -165,7 +165,10 @@ if [ ! -f ${image}_mask.${ext} ]; then
             3dcalc -overwrite -a ${phase}_autobox.${ext} -expr "(a+${min})*1000" -prefix ${phase}_weird.${ext}
             bet ${image}_autobox.${ext} ${image}_ss.${ext} -A2 ${phase}_weird.${ext} -R -m -f 0.3 
             mv ${image}_ss_mask.${ext} ${image}_mask.${ext}    
-        fi
+        else
+	    bet ${image}_autobox.${ext} ${image}_ss.${ext} -R -m -f 0.4 
+            mv ${image}_ss_mask.${ext} ${image}_mask.${ext}  
+	fi
     fi
 else
     printf "Brain mask already exists for this subject.\n"
@@ -225,11 +228,11 @@ printf "Smallest dim : %s \n" ${smalldim}
 if [ ! -f ${image}_Ved.${ext} ]; then
     if [ "${imgType}" = "TOF" ]; then
         3dresample -overwrite -dxyz ${smalldim} ${smalldim} ${smalldim} -rmode Cu -prefix ${image}_upsampled.${ext} -inset ${image}_std${stdDenoised}_denoised.nii.gz
-        ${scriptpath}/ComputeVED.py ${image}_upsampled.${ext} ${image}_Ved.${ext} -m ${smalldim} -M 6 -t 25 -n 10 -s 5 -w 25 --generate_scale -D 'scales'
+        ${scriptpath}/ComputeVED.py ${image}_upsampled.${ext} ${image}_Ved.${ext} -m ${smalldim} -M 6 -t 18 -n 10 -s 5 -w 25 --generate_scale -D 'scales'
     elif [ "${imgType}" = "SWI" ]; then
         3dresample -overwrite -dxyz ${smalldim} ${smalldim} ${smalldim} -rmode Cu -prefix ${image}_upsampled.${ext} -inset ${image}_Contrasted.nii.gz
         #3dLocalstat -nbhd 'RECT(1,1,1)' -stat max -prefix ${image}_mip.${ext} -overwrite ${image}_Contrasted.nii.gz 
-        ${scriptpath}/ComputeVED.py ${image}_upsampled.${ext} ${image}_Ved.${ext} -m ${smalldim} -M 6 -t 25 -n 10 -s 5 -w 25
+        ${scriptpath}/ComputeVED.py ${image}_upsampled.${ext} ${image}_Ved.${ext} -m ${smalldim} -M 6 -t 18 -n 10 -s 5 -w 25
     fi
 else
     printf "Vessel enhancing diffusion file already exists for this subject.\n"

@@ -18,7 +18,7 @@ Analysis, 10(6), 815-825.
 """
 
 import argparse
-import os
+import os, sys
 from subprocess import call
 
 
@@ -134,7 +134,7 @@ class ComputeVED:
             files_created_ved.append(best_hessian_path)
             shorts.append('ved_generated_best_Hessian.nii.gz')
 
-        print self._generate_iteration_files
+        print(self._generate_iteration_files)
 
         # range to save last iteration.
         if self._generate_iteration_files:
@@ -154,8 +154,8 @@ class ComputeVED:
 
         kwargs = {}
 
-        print "shorts : ", shorts
-        print "outputs : ", files_created_ved
+        print("shorts : ", shorts)
+        print("outputs : ", files_created_ved)
 
         # All parameters need to be pass as string or None if it is a flag.
         kwargs['--input'] = self._input
@@ -192,22 +192,22 @@ class ComputeVED:
         if self._generate_iteration_files:
             kwargs['--generateIterationFiles'] = None
 
-        cmd_string = ['./itkVEDMain']
+        cmd_string = [sys.path[0] + '/itkVEDMain']
         
         for k in kwargs:
             cmd_string.append(k)
             if kwargs[k]:
                 cmd_string.append(kwargs[k])
 
-        print cmd_string
+        print(cmd_string)
         ret_code = call(cmd_string)
 
-        print "VED binary execution is finished with code: " + str(ret_code)
+        print("VED binary execution is finished with code: " + str(ret_code))
 
         if files_created_ved:
-            print "TEST"
-            print "shorts are: " + str(shorts)
-            print "files_created_ved are: " + str(files_created_ved)
+            print("TEST")
+            print("shorts are: " + str(shorts))
+            print("files_created_ved are: " + str(files_created_ved))
             for short_path, long_path in zip(shorts, files_created_ved):
                 os.rename(short_path, long_path)
 
