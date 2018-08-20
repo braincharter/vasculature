@@ -151,27 +151,32 @@ echo GENERATE CENTERLINE = "${getCenterline}"
 printf "\n+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n"
 printf "Step 1. SkullStripping. \n"
 printf "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n"
-if [ ! -f ${image}_mask.${ext} ]; then
+if [ ! -f ${image}_autobox.${ext} ]; then
     3dAutobox -overwrite -prefix ${image}_autobox.${ext} -npad 3 ${image}.${ext}
     if [ "${imgType}" = "TOF" ]; then
         3dSkullStrip -overwrite -mask_vol -input ${image}_autobox.${ext} -prefix ${image}_mask.${ext} -blur_fwhm 2 -use_edge -avoid_vent -touchup
         3dcalc -overwrite -a ${image}_autobox.${ext} -b ${image}_mask.${ext} -expr "step(b)*abs(a)" -prefix ${image}_ss.${ext} -datum short
     elif [ "${imgType}" = "SWI" ]; then
-        if [ -f ${phase}.${ext} ] ; then
-            #read -p "Skullstripping ${image}.${ext}"
-            min=`3dBrickStat -slow -min ${phase}.${ext}  | awk '{print $1}'`
-            max=`3dBrickStat -slow -max ${phase}.${ext} | awk '{print $1}'`
-            3dresample -input ${phase}.${ext} -master ${image}_autobox.${ext} -prefix ${phase}_autobox.${ext}
-            3dcalc -overwrite -a ${phase}_autobox.${ext} -expr "(a+${min})*1000" -prefix ${phase}_weird.${ext}
-            bet ${image}_autobox.${ext} ${image}_ss.${ext} -A2 ${phase}_weird.${ext} -R -m -f 0.3 
-            mv ${image}_ss_mask.${ext} ${image}_mask.${ext}    
+        if [ ! -f ${image}_mask.${ext} ]; then
+            if [ -f ${phase}.${ext} ] ; then
+                #read -p "Skullstripping ${image}.${ext}"
+                min=`3dBrickStat -slow -min ${phase}.${ext}  | awk '{print $1}'`
+                max=`3dBrickStat -slow -max ${phase}.${ext} | awk '{print $1}'`
+                3dresample -input ${phase}.${ext} -master ${image}_autobox.${ext} -prefix ${phase}_autobox.${ext}
+                3dcalc -overwrite -a ${phase}_autobox.${ext} -expr "(a+${min})*1000" -prefix ${phase}_weird.${ext}
+                bet ${image}_autobox.${ext} ${image}_ss.${ext} -A2 ${phase}_weird.${ext} -R -m -f 0.3  
+                mv ${image}_ss_mask.${ext} ${image}_mask.${ext}    
+            else
+                bet ${image}_autobox.${ext} ${image}_ss.${ext} -R -m -f 0.65
+                mv ${image}_ss_mask.${ext} ${image}_mask.${ext}  
+            fi
         else
-	         bet ${image}_autobox.${ext} ${image}_ss.${ext} -R -m -f 0.65
-            mv ${image}_ss_mask.${ext} ${image}_mask.${ext}  
-	fi
+            printf "Mask already exists. Putting in same space as magnitude.\n"
+            3dresample -master ${image}_autobox.${ext} -input ${image}_mask.${ext} -prefix ${image}_mask.${ext} -overwrite
+        fi
     fi
 else
-    printf "Brain mask already exists for this subject.\n"
+    printf "Autobox already exists for this subject.\n"
 fi
 
 printf "\n+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n"
