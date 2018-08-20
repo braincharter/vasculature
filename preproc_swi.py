@@ -8,6 +8,12 @@ Usage:
   preproc_swi.py <input_magnitude> <input_phase>
 """
 
+import warnings
+warnings.filterwarnings("ignore")
+warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.simplefilter(action='ignore', category=RuntimeWarning)
+warnings.simplefilter(action='ignore', category=DeprecationWarning)
+
 import os
 import argparse
 import nibabel as nib
@@ -17,12 +23,6 @@ import matplotlib.pyplot as plt
 from scipy.signal import convolve2d as conv2d
 from scipy.signal import hann as hann
 from numpy.fft import ifftn, fftn, fftshift, ifftshift
-import warnings
-warnings.filterwarnings("ignore")
-warnings.simplefilter(action='ignore', category=FutureWarning)
-warnings.simplefilter(action='ignore', category=RuntimeWarning)
-warnings.simplefilter(action='ignore', category=ImportWarning)
-warnings.simplefilter(action='ignore', category=DeprecationWarning)
 
 class SWIPhaseBoost:
     def __init__(self, 
