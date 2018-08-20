@@ -166,7 +166,7 @@ if [ ! -f ${image}_mask.${ext} ]; then
             bet ${image}_autobox.${ext} ${image}_ss.${ext} -A2 ${phase}_weird.${ext} -R -m -f 0.3 
             mv ${image}_ss_mask.${ext} ${image}_mask.${ext}    
         else
-	    bet ${image}_autobox.${ext} ${image}_ss.${ext} -R -m -f 0.4 
+	         bet ${image}_autobox.${ext} ${image}_ss.${ext} -R -m -f 0.65
             mv ${image}_ss_mask.${ext} ${image}_mask.${ext}  
 	fi
     fi
@@ -203,9 +203,9 @@ fi
 # Checking for smallest pix dim.
 smalldim=99999.0
 
-xdim=`3dinfo ${image}_ss.${ext} | grep "[R]" | grep "\-step\-" | awk '{print $9}'` ;  echo $xdim
-ydim=`3dinfo ${image}_ss.${ext} | grep "[A]" | grep "\-step\-" | awk '{print $9}'` ;  echo $ydim
-zdim=`3dinfo ${image}_ss.${ext} | grep "[I]" | grep "\-step\-" | awk '{print $9}'` ;  echo $zdim
+xdim=`3dinfo ${image}_autobox.${ext} | grep "[R]" | grep "\-step\-" | awk '{print $9}'` ;  echo $xdim
+ydim=`3dinfo ${image}_autobox.${ext} | grep "[A]" | grep "\-step\-" | awk '{print $9}'` ;  echo $ydim
+zdim=`3dinfo ${image}_autobox.${ext} | grep "[I]" | grep "\-step\-" | awk '{print $9}'` ;  echo $zdim
 
 if(( $(echo "${xdim} < $smalldim" | bc -l) )); then
     smalldim=$xdim
@@ -267,7 +267,7 @@ printf "Step 5. Diameters extraction.\n"
 printf "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n"
 if [ ! -f ${image}_diameters.${ext} ]; then        
     echo "Diameter Extraction"
-    halfsize=$((${smalldim} / 2.0))
+    halfsize=`echo "scale=3;${smalldim} / 2.0" | bc`
     3dresample -overwite -dxyz ${halfsize} ${halfsize} ${halfsize} -rmode Cu -prefix ${image}_Ved_Thresh_HALF.${ext} -inset ${image}_Ved_Thresh.${ext}
     ${scriptpath}/ExtractDiameter.py ${image}_Ved_Thresh_HALF.${ext} ${image}_diameters_HALF.${ext}
     3dresample -overwrite -master ${image}_Ved_Thresh.${ext} -rmode Cu -prefix ${image}_diameters.${ext} -inset ${image}_diameters_HALF.${ext}
