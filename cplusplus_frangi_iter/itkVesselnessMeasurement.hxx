@@ -15,16 +15,16 @@
 template <typename TInputImage, typename TOutputImage>
 VesselnessMeasurement<TInputImage, TOutputImage>::VesselnessMeasurement()
     : VesselnessMeasurement<TInputImage, TOutputImage>::VesselnessMeasurement(
-          0.5, 1.0, 10e-6, false, true, false)
+          0.5, 1.0, 10e-6, false, true, false, true, 0.0)
 {
 }
 
 template <typename TInputImage, typename TOutputImage>
 VesselnessMeasurement<TInputImage, TOutputImage>::VesselnessMeasurement(
     double const& alpha, double const& beta, double const& c, const bool scale,
-    const bool bright, const bool frangi)
+    const bool bright, const bool frangi, const bool firstPass, double minL3)
     : m_Alpha{alpha}, m_Beta{beta}, m_C{c}, m_ScaleObjectnessMeasure{scale},
-      m_BrightObject{bright}, m_FrangiOnly{frangi}
+      m_BrightObject{bright}, m_FrangiOnly{frangi}, m_FirstPass{firstPass}, m_MinLambda(minL3)
 {
 }
 
@@ -55,19 +55,33 @@ void VesselnessMeasurement<TInputImage, TOutputImage>::ThreadedGenerateData(
                                                    outputRegionForThread);
   itk::ImageRegionIterator<OutputImageType> oit(output, outputRegionForThread);
 
-  it.GoToBegin();
-  while (!it.IsAtEnd())
+  if (m_FirstPass) 
   {
-    EigenValueArrayType eigenValues;
-    eigenCalculator.ComputeEigenValues(it.Get(), eigenValues);
-    const double S =
-        vcl_sqrt(vnl_math_sqr(eigenValues[0]) + vnl_math_sqr(eigenValues[1]) +
-                 vnl_math_sqr(eigenValues[2]));
+    it.GoToBegin();
+    while (!it.IsAtEnd())
+    {
+      EigenValueArrayType eigenValues;
+      eigenCalculator.ComputeEigenValues(it.Get(), eigenValues);
+      const double S =
+          vcl_sqrt(vnl_math_sqr(eigenValues[0]) + vnl_math_sqr(eigenValues[1]) +
+                  vnl_math_sqr(eigenValues[2]));
 
-    // use same m_Gamma value as Maxime Descoteaux, which is the max S value.
-    m_Gamma = std::max(m_Gamma, S / 2.0);
+      // use same m_Gamma value as Frangi
+      m_Gamma = std::max(m_Gamma, S / 2.0);
 
-    ++it;
+      EigenValueArrayType sortedEigenValues = eigenValues;
+      std::sort(sortedEigenValues.Begin(), sortedEigenValues.End(),
+                AbsLessEqualCompare());
+
+      if (sortedEigenValues[2] < m_MinLambda) 
+      {
+        m_MinLambda = sortedEigenValues[2];
+      }
+
+      ++it;
+      progress.CompletedPixel();
+    }
+    return;
   }
 
   oit.GoToBegin();
@@ -131,7 +145,7 @@ void VesselnessMeasurement<TInputImage, TOutputImage>::ThreadedGenerateData(
 
     const double A = lambda2Abs / lambda3Abs;
     const double B = lambda1Abs / vcl_sqrt(vnl_math_abs(lambda2 * lambda3));
-    const double C = lambda1Sqr + lambda2Sqr + lambda3Sqr;
+    const double S = lambda1Sqr + lambda2Sqr + lambda3Sqr;
 
     const double vesMeasure1 =
         1 - vcl_exp(-1.0 * (vnl_math_sqr(A) / (2.0 * alphaSqr)));
@@ -140,17 +154,12 @@ void VesselnessMeasurement<TInputImage, TOutputImage>::ThreadedGenerateData(
         vcl_exp(-1.0 * (vnl_math_sqr(B) / (2.0 * betaSqr)));
 
     const double vesMeasure3 =
-        1 - vcl_exp(-1.0 * (C / (2.0 * gammaSqr)));
-
-    double vesselnessMeasure = vesMeasure1 * vesMeasure2 * vesMeasure3;
-
-    // If the user wants the pure frangi vesselness measure, skip this.
-    if (!m_FrangiOnly)
-    {
-      const double vesMeasure4 =
-          vcl_exp(-1.0 * (2.0 * vnl_math_sqr(m_C)) / (lambda2Abs * lambda3Sqr));
-      vesselnessMeasure = vesselnessMeasure * vesMeasure4;
-    }
+        1 - vcl_exp(-1.0 * (S / (2.0 * gammaSqr)));
+    
+    const double vesMeasure4 =
+        vcl_exp(-1.0 * (2.0 * vnl_math_sqr(m_C)) / (lambda2Abs * lambda3Sqr));
+        
+    double vesselnessMeasure = vesMeasure1 * vesMeasure2 * vesMeasure3 * vesMeasure4;
 
     if (m_ScaleObjectnessMeasure)
     {

@@ -480,14 +480,6 @@ void AnisotropicDiffusionVesselEnhancementImageFilter<
     const MatrixType hessianEigenVectorMatrixTranspose(
         hessianEigenVectorMatrix.GetTranspose());
 
-    // TODO : In the original paper, VED is used for bright vessel only. So, on
-    // SWI (dark veins), we inverted the contrast to make the vessel bright, and
-    // then run VED on the image. But it should be possible to avoid this step,
-    // by changing the Q matrix used in the diffusion equation of VED. This
-    // might be a eigen vector/value sign change or something like that. This
-    // has not been tested yet, and should be a futur upgrade of this method.
-    // For now, keep inverting the SWI.
-
     // Generate the diagonal matrix with the eigen values.
     MatrixType eigenValueMatrix;
     eigenValueMatrix.SetIdentity();
@@ -523,19 +515,6 @@ void AnisotropicDiffusionVesselEnhancementImageFilter<
     ++itEigen;
     ++itHessian;
   }
-    // Check if we are at the latest tensor iteration (which is iteration number - 2, because - 1 is the last and it for saving the vesselness (check above).
-    //if(this->GetNumberOfIterations() - 2 == this->GetElapsedIterations())
-    //{
-        std::cout << "save the maxima vector, during iteration : " << this->GetNumberOfIterations() << "(PS: if there an iteration after, it to save vesselness and its good)." << std::endl;
-        
-        typedef itk::ImageFileWriter<DiffusionTensorImageType> ImageWriterType;
-        typename ImageWriterType::Pointer writer = ImageWriterType::New();
-        writer->SetFileName("mike_maxima_things.nii.gz");
-        writer->SetInput(m_DiffusionTensorImage);
-
-            writer->Update();
-
-    //}
 }
 
 template <class TInputImage, class TOutputImage>
@@ -806,21 +785,28 @@ void AnisotropicDiffusionVesselEnhancementImageFilter<
 
     if ((m_GenerateIterationFiles && iter == 0) || this->GetFrangiOnly())
     {
-      const std::string filename = "frangi_only_vesselness_measure.nii.gz";
+        const std::string filename = "frangi_only_vesselness_measure.nii.gz";
 
-      typedef itk::ImageFileWriter<OutputImageType> ImageWriterType;
-      typename ImageWriterType::Pointer writer = ImageWriterType::New();
+        //WRITE OUTPUT TO FILE
+        typedef itk::Image<float, ImageDimension> floatImageType;
+        typedef itk::ImageFileWriter<floatImageType> ImageWriterType;
 
-      writer->SetFileName(filename);
-      writer->SetInput(m_MultiScaleVesselnessFilter->GetOutput());
-      writer->Update();
+        typedef itk::CastImageFilter< OutputImageType, floatImageType > CastFilterType;
+        typename CastFilterType::Pointer castFilter = CastFilterType::New();
+        castFilter->SetInput(m_MultiScaleVesselnessFilter->GetOutput());
 
-      if (this->GetFrangiOnly())
-      {
-        std::cout << "Only Frangi vesselness will be produced. VED will be "
-                     "aborted. \n";
-        break;
-      }
+        typename ImageWriterType::Pointer writer = ImageWriterType::New();
+        writer->SetFileName(filename);
+        writer->SetInput(castFilter->GetOutput());
+        writer->Update();
+
+
+        if (this->GetFrangiOnly())
+        {
+            std::cout << "Only Frangi vesselness will be produced. VED will be "
+                        "aborted. \n";
+            break;
+        }
     }
 
     if (iter < this->GetNumberOfIterations() - 1)
@@ -831,16 +817,22 @@ void AnisotropicDiffusionVesselEnhancementImageFilter<
         // Ensure to save iteration 1 to N - 1. Because N = output.
         if (m_GenerateIterationFiles && iter < this->GetNumberOfIterations())
         {
-          std::stringstream sstm;
-          sstm << "ved_iteration_" << (iter + 1) << ".nii.gz";
-          const std::string vedIterationFile = sstm.str();
+            std::stringstream sstm;
+            sstm << "ved_iteration_" << (iter + 1) << ".nii.gz";
+            const std::string vedIterationFile = sstm.str();
 
-          typedef itk::ImageFileWriter<OutputImageType> ImageWriterType;
-          typename ImageWriterType::Pointer writer = ImageWriterType::New();
+            //WRITE OUTPUT TO FILE
+            typedef itk::Image<float, ImageDimension> floatImageType;
+            typedef itk::ImageFileWriter<floatImageType> ImageWriterType;
 
-          writer->SetFileName(vedIterationFile);
-          writer->SetInput(this->GetOutput());
-          writer->Update();
+            typedef itk::CastImageFilter< OutputImageType, floatImageType > CastFilterType;
+            typename CastFilterType::Pointer castFilter = CastFilterType::New();
+            castFilter->SetInput(m_MultiScaleVesselnessFilter->GetOutput());
+
+            typename ImageWriterType::Pointer writer = ImageWriterType::New();
+            writer->SetFileName(vedIterationFile);
+            writer->SetInput(castFilter->GetOutput());
+            writer->Update();
         }
     }   
 

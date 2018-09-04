@@ -4,6 +4,7 @@
 #include "itkMultiScaleHessian.h"
 
 #include "itkImageRegionIterator.h"
+#include "itkCastImageFilter.h"
 #include "vnl/vnl_math.h"
 
 
@@ -220,8 +221,23 @@ void MultiScaleHessian<TInputImage, THessianImage, TOutputImage>::GenerateData()
                                      filterStep);
   }
 
-  for (unsigned int scaleLevel = 0; scaleLevel < m_NumberOfSigmaSteps;
-       ++scaleLevel)
+///////////////
+
+  typedef itk::Image<double, OutputImageType::ImageDimension> LambdaImageType;
+  typename LambdaImageType::Pointer lastHighLambda3;
+  lastHighLambda3 = LambdaImageType::New();
+  lastHighLambda3->SetSpacing(this->GetOutput()->GetSpacing());
+  lastHighLambda3->SetOrigin(this->GetOutput()->GetOrigin());
+  lastHighLambda3->SetLargestPossibleRegion(this->GetOutput()->GetLargestPossibleRegion());
+  lastHighLambda3->SetRequestedRegion(this->GetOutput()->GetRequestedRegion());
+  lastHighLambda3->SetBufferedRegion(this->GetOutput()->GetBufferedRegion());
+  lastHighLambda3->Allocate();
+  lastHighLambda3->FillBuffer( itk::NumericTraits< double >::Zero );
+  m_HessianToMeasureFilter->SetLastHighLambda3(lastHighLambda3) ;
+  
+  int scalemax= m_NumberOfSigmaSteps-1 ;
+  for (int scaleLevel = scalemax; scaleLevel >= 0;
+       --scaleLevel)
   {
     const double sigma = this->ComputeSigmaValue(scaleLevel);
 
@@ -231,7 +247,31 @@ void MultiScaleHessian<TInputImage, THessianImage, TOutputImage>::GenerateData()
 
     m_HessianFilter->SetSigma(sigma);
     m_HessianToMeasureFilter->SetInput(m_HessianFilter->GetOutput());
+    
+    std::cout << "..doing first pass to obtain strongest Lambda per scale" << std::endl ; 
+    m_HessianToMeasureFilter->FirstPassOn();
+    m_HessianToMeasureFilter->Update(); //First pass to update strongest Lambda3
+    
+    std::cout << "..doing second pass to compute regularized vesselness" << std::endl ; 
+    m_HessianToMeasureFilter->FirstPassOff();
     m_HessianToMeasureFilter->Update();
+
+    //WRITE OUTPUT TO FILE
+    typedef itk::Image<double, ImageDimension> doubleImageType;
+    typedef itk::Image<float, ImageDimension> floatImageType;
+    typedef itk::ImageFileWriter<floatImageType> ImageWriterType;
+    
+    typedef itk::CastImageFilter< doubleImageType, floatImageType > CastFilterType;
+    typename CastFilterType::Pointer castFilter = CastFilterType::New();
+    castFilter->SetInput(m_HessianToMeasureFilter->GetOutput());
+ 
+
+    typename ImageWriterType::Pointer writer = ImageWriterType::New();
+    writer->SetFileName("Scale_" + std::to_string(int(sigma*100)) + "_Vesselness.nii.gz");
+    writer->SetInput(castFilter->GetOutput());
+    writer->Update();
+    //////////////////////
+  
     this->UpdateMaximumResponse(sigma);
   }
 
@@ -332,6 +372,9 @@ MultiScaleHessian<TInputImage, THessianImage, TOutputImage>::ComputeSigmaValue(
   {
     return m_SigmaMinimum;
   }
+
+  //HACK:
+  //m_SigmaStepMethod = Self::EquispacedSigmaSteps;
 
   switch (m_SigmaStepMethod)
   {

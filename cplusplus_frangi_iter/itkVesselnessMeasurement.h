@@ -52,6 +52,8 @@ public:
 
   typedef double EigenValueType;
   typedef itk::FixedArray<EigenValueType, ImageDimension> EigenValueArrayType;
+  
+  typedef itk::Image<double, OutputImageType::ImageDimension> LambdaImageType;
 
   itkNewMacro(Self);
 
@@ -78,6 +80,9 @@ public:
   itkSetMacro(C, double);
   itkGetConstMacro(C, double);
 
+  itkSetMacro(MinLambda, double);
+  itkGetConstMacro(MinLambda, double);
+  
   // Toggle scaling the objectness measure with the magnitude of the
   // largestabsolute eigenvalue
   itkSetMacro(ScaleObjectnessMeasure, bool);
@@ -93,6 +98,13 @@ public:
   itkSetMacro(FrangiOnly, bool);
   itkGetConstMacro(FrangiOnly, bool);
   itkBooleanMacro(FrangiOnly);
+  
+  itkSetMacro(FirstPass, bool);
+  itkGetConstMacro(FirstPass, bool);
+  itkBooleanMacro(FirstPass);
+  
+  itkSetMacro(LastHighLambda3, typename LambdaImageType::Pointer);
+  itkGetConstMacro(LastHighLambda3, typename LambdaImageType::Pointer);
 
 #ifdef ITK_USE_CONCEPT_CHECKING
   itkConceptMacro(DoubleConvertibleToOutputCheck,
@@ -103,7 +115,7 @@ protected:
   VesselnessMeasurement();
   VesselnessMeasurement(double const& alpha, double const& beta,
                         double const& c, const bool scale, const bool bright,
-                        const bool frangi);
+                        const bool frangi, const bool firstPass, double minL3);
 
   ~VesselnessMeasurement() {}
   void PrintSelf(std::ostream& os, itk::Indent indent) const;
@@ -129,10 +141,13 @@ private:
     }
   };
 
+  typename LambdaImageType::Pointer m_LastHighLambda3;
+  double m_MinLambda;
   double m_Alpha;
   double m_Beta;
   double m_Gamma;
   double m_C;
+  bool m_FirstPass;
   bool m_BrightObject;
   bool m_ScaleObjectnessMeasure;
   bool m_FrangiOnly;

@@ -233,7 +233,7 @@ printf "Smallest dim : %s \n" ${smalldim}
 if [ ! -f ${image}_Ved.${ext} ]; then
     if [ "${imgType}" = "TOF" ]; then
         3dresample -overwrite -dxyz ${smalldim} ${smalldim} ${smalldim} -rmode Cu -prefix ${image}_upsampled.${ext} -inset ${image}_std${stdDenoised}_denoised.nii.gz
-        ${scriptpath}/ComputeVED.py ${image}_upsampled.${ext} ${image}_Ved.${ext} -m ${smalldim} -M 6 -t 18 -n 10 -s 5 -w 25 --generate_scale -D 'scales'
+        ${scriptpath}/ComputeVED.py ${image}_upsampled.${ext} ${image}_Ved.${ext} -m ${smalldim} -M 6 -t 18 -n 10 -s 5 -w 25 #--generate_scale -D 'scales'
     elif [ "${imgType}" = "SWI" ]; then
         3dresample -overwrite -dxyz ${smalldim} ${smalldim} ${smalldim} -rmode Cu -prefix ${image}_upsampled.${ext} -inset ${image}_Contrasted.nii.gz
         #3dLocalstat -nbhd 'RECT(1,1,1)' -stat max -prefix ${image}_mip.${ext} -overwrite ${image}_Contrasted.nii.gz 

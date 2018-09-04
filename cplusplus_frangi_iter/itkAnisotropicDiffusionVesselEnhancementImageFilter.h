@@ -183,6 +183,7 @@ protected:
   virtual void AllocateUpdateBuffer();
 
   void AllocateDiffusionTensorImage();
+  
   void UpdateDiffusionTensorImage();
 
   typedef typename UpdateBufferType::RegionType ThreadRegionType;

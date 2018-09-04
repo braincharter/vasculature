@@ -2,6 +2,7 @@
 #define __itkMultiScaleHessian_h
 
 #include "itkVesselnessMeasurement.h"
+#include "itkImageFileWriter.h"
 
 #include "itkImageToImageFilter.h"
 #include "itkHessianRecursiveGaussianImageFilter.h"

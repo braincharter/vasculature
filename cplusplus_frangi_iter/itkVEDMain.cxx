@@ -8,6 +8,27 @@
 #include "boost/program_options.hpp"
 #include "itkImageFileReader.h"
 #include "itkImageFileWriter.h"
+#include "itkCastImageFilter.h"
+#include "itkLiThresholdImageFilter.h"
+#include "itkHuangThresholdImageFilter.h"
+#include "itkIntermodesThresholdImageFilter.h"
+#include "itkIsoDataThresholdImageFilter.h"
+#include "itkKittlerIllingworthThresholdImageFilter.h"
+#include "itkMaximumEntropyThresholdImageFilter.h"
+#include "itkMomentsThresholdImageFilter.h"
+#include "itkOtsuThresholdImageFilter.h"
+#include "itkRenyiEntropyThresholdImageFilter.h"
+#include "itkShanbhagThresholdImageFilter.h"
+#include "itkTriangleThresholdImageFilter.h"
+#include "itkYenThresholdImageFilter.h"
+#include "itkStatisticsImageFilter.h"
+
+#include "itkCurvatureFlowImageFilter.h"
+#include "itkSubtractImageFilter.h"
+#include "itkRescaleIntensityImageFilter.h"
+#include "itkGradientAnisotropicDiffusionImageFilter.h"
+#include "itkAnisotropicDiffusionImageFilter.h"
+#include "itkDenseFiniteDifferenceImageFilter.h"
 
 bool process_command_line(int argc, char** argv,
                           boost::program_options::variables_map& vm)
@@ -235,10 +256,16 @@ int main(int argc, char* argv[])
   std::cout << "Writing out the enhanced image to "
             << vm["output"].as<std::string>() << std::endl;
 
-  typedef itk::ImageFileWriter<OutputImageType> ImageWriterType;
-  ImageWriterType::Pointer writer = ImageWriterType::New();
+  typedef itk::Image<float, Dimension> floatImageType;
+  typedef itk::ImageFileWriter<floatImageType> ImageWriterType;
+
+  typedef itk::CastImageFilter< OutputImageType, floatImageType > CastFilterType;
+  typename CastFilterType::Pointer castFilter = CastFilterType::New();
+  castFilter->SetInput(VesselnessFilter->GetOutput());
+
+  typename ImageWriterType::Pointer writer = ImageWriterType::New();
   writer->SetFileName(vm["output"].as<std::string>());
-  writer->SetInput(VesselnessFilter->GetOutput());
+  writer->SetInput(castFilter->GetOutput());
 
   try
   {
@@ -249,6 +276,127 @@ int main(int argc, char* argv[])
     std::cerr << "Exception caught: " << err << std::endl;
     return EXIT_FAILURE;
   }
+
+  //DO SEGMENTATIONS!
+  bool smooth = true;
+  if (smooth == true) 
+  {
+    typedef float OutputPixelType;
+    typedef itk::Image< OutputPixelType, 3 > OutputSmoothImageType;
+ 
+    typedef itk::CurvatureFlowImageFilter< OutputSmoothImageType, OutputSmoothImageType > 
+      CurvatureFlowImageFilterType;
+    typedef itk::GradientAnisotropicDiffusionImageFilter<OutputSmoothImageType, OutputSmoothImageType > 
+      GradientAnisotropicDiffusionFilterType ;
+    typedef itk::AnisotropicDiffusionImageFilter<OutputSmoothImageType, OutputSmoothImageType> 
+      AnisotropicDiffusionFilterType ;
+  
+    typedef std::map<std::string, itk::AnisotropicDiffusionImageFilter<OutputSmoothImageType, OutputSmoothImageType>::Pointer> FilterContainerType;
+      FilterContainerType filterContainer;
+    //filterContainer["CurvatureFlow"] = CurvatureFlowImageFilterType::New();
+    filterContainer["GradientAnisotropicDiffusion"] = GradientAnisotropicDiffusionFilterType::New();
+    //filterContainer["AnisotropicDiffusion"] = AnisotropicDiffusionFilterType::New();
+    
+    FilterContainerType::iterator it = filterContainer.begin();
+    int iterations = 5;
+    for (it = filterContainer.begin(); it != filterContainer.end(); ++it) 
+    {
+      for (int iter = 10; iter <= 11.0 ; iter += 3)
+      {
+      std::cout << "Writing out segmentations (" << (*it).first << "). \n" ;
+      (*it).second->SetConductanceParameter( 0.2 ); //0.5
+      (*it).second->SetTimeStep( 0.02 );
+      (*it).second->SetInput( castFilter->GetOutput() );
+      (*it).second->SetNumberOfIterations( iter );
+      (*it).second->Update();
+
+      typedef itk::ImageFileWriter<OutputSmoothImageType> SegWriterType;
+      typename SegWriterType::Pointer writer = SegWriterType::New();
+      //std::string message = std::string("Ved_") + (*it).first + std::to_string(fConductance) + std::string(".nii.gz") ;  
+      std::string message = std::string("Ved_") + (*it).first + std::to_string(iter) + std::string(".nii.gz") ;  
+      writer->SetFileName(message);
+      writer->SetInput((*it).second->GetOutput());
+      writer->Update();
+      }
+    }
+
+  }
+ 
+  //DO SEGMENTATIONS!
+  bool provideSeg = false;
+  if (provideSeg == true) 
+  {
+    typedef  unsigned char  OutputPixelType;
+    typedef itk::Image< OutputPixelType, 3 >   OutputSegType;
+ 
+    typedef itk::LiThresholdImageFilter<floatImageType, OutputSegType >
+      LiFilterType;
+    typedef itk::HuangThresholdImageFilter<floatImageType, OutputSegType >
+      HuangFilterType;
+    typedef itk::IntermodesThresholdImageFilter<floatImageType, OutputSegType >
+      IntermodesFilterType;
+    typedef itk::IsoDataThresholdImageFilter<floatImageType, OutputSegType >
+      IsoDataFilterType;
+    typedef itk::KittlerIllingworthThresholdImageFilter<floatImageType, OutputSegType >
+      KittlerIllingworthFilterType;
+    typedef itk::LiThresholdImageFilter<floatImageType, OutputSegType >
+      LiFilterType;
+    typedef itk::MaximumEntropyThresholdImageFilter<floatImageType, OutputSegType >
+      MaximumEntropyFilterType;
+    typedef itk::MomentsThresholdImageFilter<floatImageType, OutputSegType >
+      MomentsFilterType;
+    typedef itk::OtsuThresholdImageFilter<floatImageType, OutputSegType >
+      OtsuFilterType;
+    typedef itk::RenyiEntropyThresholdImageFilter<floatImageType, OutputSegType >
+      RenyiEntropyFilterType;
+    typedef itk::ShanbhagThresholdImageFilter<floatImageType, OutputSegType >
+      ShanbhagFilterType;
+    typedef itk::TriangleThresholdImageFilter<floatImageType, OutputSegType >
+      TriangleFilterType;
+    typedef itk::YenThresholdImageFilter<floatImageType, OutputSegType >
+      YenFilterType;
+  
+    typedef itk::StatisticsImageFilter<floatImageType> StatisticsImageFilterType;
+    StatisticsImageFilterType::Pointer statisticsImageFilter = StatisticsImageFilterType::New();
+    statisticsImageFilter->SetInput(castFilter->GetOutput());
+    statisticsImageFilter->Update();
+
+    typedef std::map<std::string, itk::HistogramThresholdImageFilter<floatImageType, OutputSegType>::Pointer> FilterContainerType;
+    FilterContainerType filterContainer;
+  
+    filterContainer["Huang"] = HuangFilterType::New();
+    //filterContainer["Intermodes"] = IntermodesFilterType::New();
+    //filterContainer["IsoData"] = IsoDataFilterType::New();
+    //filterContainer["KittlerIllingworth"] = KittlerIllingworthFilterType::New();
+    //filterContainer["Li"] = LiFilterType::New();
+    //filterContainer["MaximumEntropy"] = MaximumEntropyFilterType::New();
+    filterContainer["Moments"] = MomentsFilterType::New();
+    filterContainer["Otsu"] = OtsuFilterType::New();
+    //filterContainer["RenyiEntropy"] = RenyiEntropyFilterType::New();
+    //filterContainer["Shanbhag"] = ShanbhagFilterType::New();
+    filterContainer["Triangle"] = TriangleFilterType::New();
+    //filterContainer["Yen"] = YenFilterType::New();
+  
+    FilterContainerType::iterator it = filterContainer.begin();
+    for (it = filterContainer.begin(); it != filterContainer.end(); ++it)
+      {
+      std::cout << "Writing out segmentations (" << (*it).first << "). \n" ;
+      (*it).second->SetInsideValue( statisticsImageFilter->GetMaximum() );
+      (*it).second->SetOutsideValue( statisticsImageFilter->GetMinimum() );
+      (*it).second->SetInput( castFilter->GetOutput() );
+      (*it).second->SetNumberOfHistogramBins( 100 );
+      (*it).second->Update();
+
+      typedef itk::ImageFileWriter<OutputSegType> SegWriterType;
+      typename SegWriterType::Pointer writer = SegWriterType::New();
+      std::string message = std::string("Ved_") + (*it).first + std::string(".nii.gz") ;  
+      writer->SetFileName(message);
+      writer->SetInput((*it).second->GetOutput());
+      writer->Update();
+      }
+
+  }
+ 
 
   if (vm.count("generateScale"))
   {
