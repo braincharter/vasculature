@@ -4,6 +4,7 @@
 #include "itkVesselnessMeasurement.h"
 
 #include "itkImageRegionIterator.h"
+#include "itkImageIterator.h"
 #include "itkProgressReporter.h"
 #include "itkSymmetricEigenAnalysis.h"
 #include "vnl/vnl_math.h"
@@ -158,6 +159,33 @@ void VesselnessMeasurement<TInputImage, TOutputImage>::ThreadedGenerateData(
     
     const double vesMeasure4 =
         vcl_exp(-1.0 * (2.0 * vnl_math_sqr(m_C)) / (lambda2Abs * lambda3Sqr));
+
+    /*//////////////////
+    double regularizedLambda3val = 0.95;
+    double lambdaP=0;
+    
+    
+    //MIKE AJUSTEMENT : https://www.researchgate.net/publication/283558933_Beyond_Frangi_An_improved_multiscale_vesselness_filter
+    if ( lambda3 < ( regularizedLambda3val * vnl_math_min(lambda3,m_MinLambda) ) )
+    {
+      lambdaP = lambda3;
+    }
+    else
+    {
+      lambdaP = regularizedLambda3val * vnl_math_min(lambda3,m_MinLambda);
+    }
+    
+    double vesselnessMeasure = 0;
+    if (lambda2 <= lambdaP/2.0 )
+    {
+      vesselnessMeasure = 1.0;
+    }
+    else
+    {
+      vesselnessMeasure = vesMeasure2 * vesMeasure4 * vnl_math_sqr(lambda2) * (lambdaP-lambda2) * vnl_math_cube(3.0/(lambda2 + lambdaP));
+    }
+    oit.Set(static_cast<OutputPixelType>(1000.0*vesselnessMeasure));
+   ////////////////*/
         
     double vesselnessMeasure = vesMeasure1 * vesMeasure2 * vesMeasure3 * vesMeasure4;
 
@@ -169,6 +197,7 @@ void VesselnessMeasurement<TInputImage, TOutputImage>::ThreadedGenerateData(
     {
       oit.Set(static_cast<OutputPixelType>(vesselnessMeasure));
     }
+    
 
     ++it;
     ++oit;

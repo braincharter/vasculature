@@ -5,6 +5,14 @@
 
 #include "itkImageRegionIterator.h"
 #include "itkCastImageFilter.h"
+#include "itkThresholdImageFilter.h"
+#include "itkInverseDeconvolutionImageFilter.h"
+#include "itkProjectedLandweberDeconvolutionImageFilter.h"
+#include "itkParametricBlindLeastSquaresDeconvolutionImageFilter.h"
+#include "itkRichardsonLucyDeconvolutionImageFilter.h"
+#include "itkIterativeDeconvolutionImageFilter.h"
+#include "itkDiscreteGaussianImageFilter.h"
+#include "itkRescaleIntensityImageFilter.h"
 #include "vnl/vnl_math.h"
 
 
@@ -223,7 +231,7 @@ void MultiScaleHessian<TInputImage, THessianImage, TOutputImage>::GenerateData()
 
 ///////////////
 
-  typedef itk::Image<double, OutputImageType::ImageDimension> LambdaImageType;
+  /*typedef itk::Image<double, OutputImageType::ImageDimension> LambdaImageType;
   typename LambdaImageType::Pointer lastHighLambda3;
   lastHighLambda3 = LambdaImageType::New();
   lastHighLambda3->SetSpacing(this->GetOutput()->GetSpacing());
@@ -233,7 +241,7 @@ void MultiScaleHessian<TInputImage, THessianImage, TOutputImage>::GenerateData()
   lastHighLambda3->SetBufferedRegion(this->GetOutput()->GetBufferedRegion());
   lastHighLambda3->Allocate();
   lastHighLambda3->FillBuffer( itk::NumericTraits< double >::Zero );
-  m_HessianToMeasureFilter->SetLastHighLambda3(lastHighLambda3) ;
+  m_HessianToMeasureFilter->SetLastHighLambda3(lastHighLambda3) ;*/
   
   int scalemax= m_NumberOfSigmaSteps-1 ;
   for (int scaleLevel = scalemax; scaleLevel >= 0;
@@ -256,16 +264,89 @@ void MultiScaleHessian<TInputImage, THessianImage, TOutputImage>::GenerateData()
     m_HessianToMeasureFilter->FirstPassOff();
     m_HessianToMeasureFilter->Update();
 
-    //WRITE OUTPUT TO FILE
     typedef itk::Image<double, ImageDimension> doubleImageType;
+   
+
+    //WRITE OUTPUT TO FILE
     typedef itk::Image<float, ImageDimension> floatImageType;
     typedef itk::ImageFileWriter<floatImageType> ImageWriterType;
-    
     typedef itk::CastImageFilter< doubleImageType, floatImageType > CastFilterType;
-    typename CastFilterType::Pointer castFilter = CastFilterType::New();
-    castFilter->SetInput(m_HessianToMeasureFilter->GetOutput());
+    typename CastFilterType::Pointer castFilterFirst = CastFilterType::New();
+    castFilterFirst->SetInput(m_HessianToMeasureFilter->GetOutput());
  
+    typename ImageWriterType::Pointer writerfirst = ImageWriterType::New();
+    writerfirst->SetFileName("Scale_NOWEINER_" + std::to_string(int(sigma*100)) + "_Vesselness.nii.gz");
+    writerfirst->SetInput(castFilterFirst->GetOutput());
+    writerfirst->Update();
+    //////////////////////
+  
+    
+    
+    //APPLY A CONVOLUTION FILTER TO REVERSE THE SMOOTHING EFFECT (maybe try weiner)
+    //typedef itk::ProjectedLandweberDeconvolutionImageFilter<doubleImageType>  InverseFilterImageType;
+    typedef itk::RichardsonLucyDeconvolutionImageFilter<doubleImageType>  InverseFilterImageType;
+    
+    typename  InverseFilterImageType::Pointer InverseFilterType =  InverseFilterImageType::New();
+    
+    typename doubleImageType::Pointer gaussKernel = doubleImageType::New();
+    typename doubleImageType::IndexType start;
+      start.Fill(0);
+    typename doubleImageType::SizeType size;
+      int sizeodd = 2 * ( (int)( 9*sigma / 2.0f ) ) + 1 ; //9 times.. might be 3 or 6
+      sizeodd = vnl_math_max(7, sizeodd);
+      size.Fill(sizeodd);
+    typename doubleImageType::RegionType region;
+      region.SetSize(size);
+      region.SetIndex(start);
+    typename doubleImageType::IndexType pixelIndex;
+      pixelIndex[0] = (size[0]-1)/2;
+      pixelIndex[1] = (size[1]-1)/2;
+      pixelIndex[2] = (size[2]-1)/2;
 
+    gaussKernel->SetRegions(region);
+    gaussKernel->Allocate();
+    gaussKernel->SetPixel(pixelIndex, 1.0);
+    gaussKernel->Update();
+  
+    typedef itk::DiscreteGaussianImageFilter<doubleImageType, doubleImageType> gaussBlurType;
+    typename gaussBlurType::Pointer blurfilter = gaussBlurType::New();
+    blurfilter->SetInput( gaussKernel );
+    blurfilter->SetVariance( 2.0*sigma );
+    blurfilter->SetMaximumKernelWidth( sizeodd );
+    blurfilter->Update();
+
+    typedef itk::ThresholdImageFilter <doubleImageType> ThresholdImageFilterType;
+    typename ThresholdImageFilterType::Pointer thresholdFilter  = ThresholdImageFilterType::New();
+    if (sigma >= 0.005*this->GetInput()->GetSpacing()[0]) //deconvolution relevant here
+    {
+      std::cout << "..deconvolve the scale with a R-L filter" << std::endl ; 
+      InverseFilterType->SetInput(m_HessianToMeasureFilter->GetOutput());
+      InverseFilterType->SetKernelImage(blurfilter->GetOutput());
+      InverseFilterType->Update();
+
+      thresholdFilter->SetInput(InverseFilterType->GetOutput());
+      thresholdFilter->ThresholdOutside(0.0, 1.0);
+      thresholdFilter->SetOutsideValue(0);
+    }
+    else
+    {
+      thresholdFilter->SetInput(m_HessianToMeasureFilter->GetOutput());
+      thresholdFilter->ThresholdOutside(0.0, 1.0);
+      thresholdFilter->SetOutsideValue(0);
+    }
+    
+    //Rescale from 1 to 1000, just to see what it does
+    //typedef itk::RescaleIntensityImageFilter<doubleImageType> RescaleFilterType;
+    //typename RescaleFilterType::Pointer rescaler = RescaleFilterType::New();
+    //rescaler->SetOutputMinimum(   0 );
+    //rescaler->SetOutputMaximum( 1000 );
+    //rescaler->SetInput(InverseFilterType->GetOutput());
+    
+
+    //WRITE OUTPUT TO FILE
+    typename CastFilterType::Pointer castFilter = CastFilterType::New();
+    castFilter->SetInput(thresholdFilter->GetOutput());
+ 
     typename ImageWriterType::Pointer writer = ImageWriterType::New();
     writer->SetFileName("Scale_" + std::to_string(int(sigma*100)) + "_Vesselness.nii.gz");
     writer->SetInput(castFilter->GetOutput());
@@ -293,6 +374,7 @@ void MultiScaleHessian<TInputImage, THessianImage, TOutputImage>::GenerateData()
   }
   m_UpdateBuffer->ReleaseData();
 }
+
 
 // =============================================================================
 // Keep the best sigma scale in memory (Hessian, scale and vesselness)
@@ -374,7 +456,7 @@ MultiScaleHessian<TInputImage, THessianImage, TOutputImage>::ComputeSigmaValue(
   }
 
   //HACK:
-  //m_SigmaStepMethod = Self::EquispacedSigmaSteps;
+  m_SigmaStepMethod = Self::EquispacedSigmaSteps;
 
   switch (m_SigmaStepMethod)
   {

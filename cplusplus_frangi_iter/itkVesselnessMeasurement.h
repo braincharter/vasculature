@@ -55,6 +55,8 @@ public:
   
   typedef itk::Image<double, OutputImageType::ImageDimension> LambdaImageType;
 
+  void UpdateMeasure(OutputImageType* newMeasure);
+
   itkNewMacro(Self);
 
   itkTypeMacro(VesselnessMeasurement, ImageToImageFilter);
@@ -122,6 +124,8 @@ protected:
 
   void ThreadedGenerateData(const OutputImageRegionType& outputRegionForThread,
                             itk::ThreadIdType threadId);
+  
+  
 
 private:
   VesselnessMeasurement(const Self&);

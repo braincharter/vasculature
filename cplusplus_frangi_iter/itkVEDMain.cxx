@@ -304,7 +304,7 @@ int main(int argc, char* argv[])
       for (int iter = 10; iter <= 11.0 ; iter += 3)
       {
       std::cout << "Writing out segmentations (" << (*it).first << "). \n" ;
-      (*it).second->SetConductanceParameter( 0.2 ); //0.5
+      (*it).second->SetConductanceParameter( 0.3 ); //0.5
       (*it).second->SetTimeStep( 0.02 );
       (*it).second->SetInput( castFilter->GetOutput() );
       (*it).second->SetNumberOfIterations( iter );
