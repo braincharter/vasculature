@@ -55,8 +55,6 @@ public:
   
   typedef itk::Image<double, OutputImageType::ImageDimension> LambdaImageType;
 
-  void UpdateMeasure(OutputImageType* newMeasure);
-
   itkNewMacro(Self);
 
   itkTypeMacro(VesselnessMeasurement, ImageToImageFilter);
