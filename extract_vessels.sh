@@ -184,6 +184,9 @@ if [ ! -f ${image}_mask.${ext} ]; then
             printf "Mask already exists. Putting in same space as magnitude.\n"
             3dresample -master ${image}_autobox.${ext} -input ${image}_mask.${ext} -prefix ${image}_mask.${ext} -overwrite
         fi
+    elif [ "${imgType}" = "OTHER" ]; then
+        3dcalc -a ${image}_autobox.${ext} -expr "step(a)" -prefix ${image}_mask.nii.gz
+        cp -rf ${image}_autobox.${ext} ${image}_ss.${ext}
     fi
 else
     printf "Mask already exists for this subject.\n"
@@ -249,6 +252,9 @@ if [ ! -f ${image}_Ved.${ext} ]; then
         3dresample -overwrite -dxyz ${smalldim} ${smalldim} ${smalldim} -rmode Cu -prefix ${image}_upsampled.${ext} -inset ${image}_Contrasted.nii.gz
         ${scriptpath}/ComputeVED.py ${image}_upsampled.${ext} ${image}_Ved.${ext} -m ${smalldim} -O -M 2.0 -t 0 -n 15 -s 2 -w 90 -I --out_folder "./${image}_iterations" 
         #${scriptpath}/ComputeVED.py ${image}_upsampled.${ext} ${image}_Ved.${ext} -m ${smalldim} -M 6 -t 18 -n 10 -s 5 -w 25
+    elif [ "${imgType}" = "OTHER" ]; then
+        3dresample -overwrite -dxyz ${smalldim} ${smalldim} ${smalldim} -rmode Cu -prefix ${image}_upsampled.${ext} -inset ${image}_std${stdDenoised}_denoised.nii.gz
+        ${scriptpath}/ComputeVED.py ${image}_upsampled.${ext} ${image}_Ved.${ext} -m ${smalldim} -O -M 2.0 -t 0 -n 15 -s 2 -w 90 -I --out_folder "./${image}_iterations" 
     fi
     rm -rf ./${image}_iterations
 else
