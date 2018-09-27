@@ -283,8 +283,8 @@ void MultiScaleHessian<TInputImage, THessianImage, TOutputImage>::GenerateData()
     
     
     //APPLY A CONVOLUTION FILTER TO REVERSE THE SMOOTHING EFFECT (maybe try weiner)
-    //typedef itk::ProjectedLandweberDeconvolutionImageFilter<doubleImageType>  InverseFilterImageType;
-    typedef itk::RichardsonLucyDeconvolutionImageFilter<doubleImageType>  InverseFilterImageType;
+    typedef itk::ProjectedLandweberDeconvolutionImageFilter<doubleImageType>  InverseFilterImageType;
+    //typedef itk::RichardsonLucyDeconvolutionImageFilter<doubleImageType>  InverseFilterImageType;
     
     typename  InverseFilterImageType::Pointer InverseFilterType =  InverseFilterImageType::New();
     
@@ -294,6 +294,7 @@ void MultiScaleHessian<TInputImage, THessianImage, TOutputImage>::GenerateData()
     typename doubleImageType::SizeType size;
       int sizeodd = 2 * ( (int)( 9*sigma / 2.0f ) ) + 1 ; //9 times.. might be 3 or 6
       sizeodd = vnl_math_max(7, sizeodd);
+      std::cout << "..filter size is: " << std::to_string(sizeodd) << std::endl ; 
       size.Fill(sizeodd);
     typename doubleImageType::RegionType region;
       region.SetSize(size);
@@ -304,6 +305,8 @@ void MultiScaleHessian<TInputImage, THessianImage, TOutputImage>::GenerateData()
       pixelIndex[2] = (size[2]-1)/2;
 
     gaussKernel->SetRegions(region);
+    //gaussKernel->SetOrigin(this->GetInput()->GetOrigin());
+    //gaussKernel->SetSpacing(this->GetInput()->GetSpacing());
     gaussKernel->Allocate();
     gaussKernel->SetPixel(pixelIndex, 1.0);
     gaussKernel->Update();
@@ -316,36 +319,40 @@ void MultiScaleHessian<TInputImage, THessianImage, TOutputImage>::GenerateData()
     blurfilter->Update();
 
     typedef itk::ThresholdImageFilter <doubleImageType> ThresholdImageFilterType;
-    typename ThresholdImageFilterType::Pointer thresholdFilter  = ThresholdImageFilterType::New();
-    if (sigma >= 0.005*this->GetInput()->GetSpacing()[0]) //deconvolution relevant here
+    typename ThresholdImageFilterType::Pointer thresholdBelow  = ThresholdImageFilterType::New();
+    if (sigma >= 99.35) //deconvolution relevant here
     {
       std::cout << "..deconvolve the scale with a R-L filter" << std::endl ; 
       InverseFilterType->SetInput(m_HessianToMeasureFilter->GetOutput());
       InverseFilterType->SetKernelImage(blurfilter->GetOutput());
       InverseFilterType->Update();
 
-      thresholdFilter->SetInput(InverseFilterType->GetOutput());
-      thresholdFilter->ThresholdOutside(0.0, 1.0);
-      thresholdFilter->SetOutsideValue(0);
+      thresholdBelow->SetInput(InverseFilterType->GetOutput());
     }
     else
     {
-      thresholdFilter->SetInput(m_HessianToMeasureFilter->GetOutput());
-      thresholdFilter->ThresholdOutside(0.0, 1.0);
-      thresholdFilter->SetOutsideValue(0);
+      thresholdBelow->SetInput(m_HessianToMeasureFilter->GetOutput());
     }
+    thresholdBelow->ThresholdBelow(0.0001);
+    thresholdBelow->SetOutsideValue(0);
+    
+    typename ThresholdImageFilterType::Pointer thresholdUpper  = ThresholdImageFilterType::New();
+    thresholdUpper->SetInput(thresholdBelow->GetOutput());
+    thresholdUpper->ThresholdAbove(1.0);
+    thresholdUpper->SetOutsideValue(1.0);
+    
     
     //Rescale from 1 to 1000, just to see what it does
-    //typedef itk::RescaleIntensityImageFilter<doubleImageType> RescaleFilterType;
-    //typename RescaleFilterType::Pointer rescaler = RescaleFilterType::New();
-    //rescaler->SetOutputMinimum(   0 );
-    //rescaler->SetOutputMaximum( 1000 );
-    //rescaler->SetInput(InverseFilterType->GetOutput());
+    typedef itk::RescaleIntensityImageFilter<doubleImageType> RescaleFilterType;
+    typename RescaleFilterType::Pointer rescaler = RescaleFilterType::New();
+    rescaler->SetOutputMinimum(   0 );
+    rescaler->SetOutputMaximum( 1000 );
+    rescaler->SetInput(thresholdUpper->GetOutput());
     
 
     //WRITE OUTPUT TO FILE
     typename CastFilterType::Pointer castFilter = CastFilterType::New();
-    castFilter->SetInput(thresholdFilter->GetOutput());
+    castFilter->SetInput(rescaler->GetOutput());
  
     typename ImageWriterType::Pointer writer = ImageWriterType::New();
     writer->SetFileName("Scale_" + std::to_string(int(sigma*100)) + "_Vesselness.nii.gz");
