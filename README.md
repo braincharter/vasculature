@@ -1,9 +1,9 @@
 # Braincharter Vasculature
-Region- and voxel-based probabilistic mapping of whole-brain veins and arteries (densities and diameter) in the MNI space. The initial release of this work is based on the follwing paper:
+Region- and voxel-based probabilistic mapping of whole-brain veins and arteries (densities and diameter) in the MNI space. The initial release of this work is based on the following paper:
 
 Bernier, M., Cunnane, S. C., & Whittingstall, K. (2018). The morphology of the human cerebrovascular system. Human Brain Mapping. https://doi.org/10.1002/hbm.24337
 
-The script is being currently updated for more stable results across scanners and image types.
+*The script is being currently updated for more stable results across scanners and image types.*
 
 ## Template
 
@@ -15,12 +15,14 @@ The folders contains, for SWI and ToF:
 - CAT_data_VED.nii.gz: The output of the extraction itself, unthresholded, where all subjects are concatenated in a 4D file
 - CAT_data_VED_thresh.nii.gz: The output of the extraction itself, thresholded, where all subjects are concatenated in a 4D file
 
+TODO: Add the script to create the template
+
 ## Installation
 
 Developement has been first inspired from the VMTK toolbox, but as of today the script has and is currently beiing actively revamped. It is currently used on Linux and MACOS. The dependences are:
 
 - ITK >= 4.9, < 5.0 (do not forget to set ITK_DIR)
-- python 2.7 (not tested with 3.5 and higher) with numpy, dipy (non exhaustive list)
+- python 2.7 (not tested with 3.5 and higher) with numpy, dipy, scikit-image (non exhaustive list)
 - ANTs (https://github.com/ANTsX/ANTs). ITK 5.0 will be installed during ANTs compilation; ignore this version
 - cmake + cmake-gui
 - MACOS: realpath
