@@ -251,9 +251,10 @@ printf "Smallest dim : %s \n" ${smalldim}
 # smalldim=0.599
 a=0.5
 b=`echo "scale=3; ${smalldim} * 1.2" | bc`
-small_scale=$(( a > b ? a : b ))
-large_scale=`echo "scale=3; ${small_scale} * 3" | bc`
-large_scale_clarity=`echo "scale=3; ${small_scale} * 1.5" | bc`
+#small_scale=$(( a > b ? a : b ))
+small_scale=0.5
+large_scale=`echo "scale=3; ${small_scale} * 4" | bc`
+large_scale_clarity=`echo "scale=3; ${small_scale} * 4" | bc`
  
 if [ ! -f ${image}_Ved.${ext} ]; then
     if [ "${imgType}" = "TOF" ]; then
