@@ -7,8 +7,13 @@ The script is being currently updated for more stable results across scanners an
 
 ## Template
 
-The initial release of the arterial and vascular template (based on time-of-flight and susceptibility weighted imaging) are available to download in the '/template' folder. template are in their early stage and will be updated regularly. 
-(Descrition and instructions to follow)
+The initial release of the arterial and vascular template (based on 41 healthy time-of-flight and susceptibility weighted imaging) are available to download in the '/Template_MNI_2018' folder. template are in their early stage and will be updated regularly (details to follow).
+
+The folders contains, for SWI and ToF:
+- mean_data_VED.nii.gz: The output of the extraction itself, unthresholded, averaged across all subjects
+- mean_data_VED_thresh.nii.gz: The output of the extraction itself, thresholded, averaged across all subjects
+- CAT_data_VED.nii.gz: The output of the extraction itself, unthresholded, where all subjects are concatenated in a 4D file
+- CAT_data_VED_thresh.nii.gz: The output of the extraction itself, thresholded, where all subjects are concatenated in a 4D file
 
 ## Installation
 
