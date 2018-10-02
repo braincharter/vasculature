@@ -7,7 +7,7 @@ Bernier, M., Cunnane, S. C., & Whittingstall, K. (2018). The morphology of the h
 
 ## Template
 
-The initial release of the arterial and vascular template (based on 41 healthy time-of-flight and susceptibility weighted imaging) are available to download in the '/Template_MNI_2018' folder. template are in their early stage and will be updated regularly (details to follow).
+The initial release of the arterial and vascular template (based on 41 healthy time-of-flight and susceptibility weighted imaging) are available to download here: https://www.dropbox.com/s/9ia72wg53m1ricc/Template_MNI_2018_41_subjects.zip?dl=0. The vascular maps are in their early stage and will be updated regularly (details to follow).
 
 The folders contains, for SWI and ToF:
 - mean_data_VED.nii.gz: The output of the extraction itself, unthresholded, averaged across all subjects
