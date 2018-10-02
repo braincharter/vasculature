@@ -20,7 +20,7 @@ The folders contains, for SWI and ToF:
 Developement has been first inspired from the VMTK toolbox, but as of today the script has and is currently beiing actively revamped. It is currently used on Linux and MACOS. The dependences are:
 
 - ITK >= 4.9, < 5.0 (do not forget to set ITK_DIR)
-- python 2.7 (not tested with 3.5 and higher) with numpy, dipy (non exhaustive list)
+- python 2.7 (not tested with 3.5 and higher) with numpy, dipy, scikit-image (non exhaustive list)
 - ANTs (https://github.com/ANTsX/ANTs). ITK 5.0 will be installed during ANTs compilation; ignore this version
 - cmake + cmake-gui
 - MACOS: realpath
