@@ -249,19 +249,21 @@ printf "Smallest dim : %s \n" ${smalldim}
 
 # Hack to change smallest diameter value (added to original)
 # smalldim=0.599
-
+small_scale=`echo "scale=3; ${smalldim} * 1.2" | bc`
+large_scale=`echo "scale=3; ${smalldim} * 2.5" | bc`
+ 
 if [ ! -f ${image}_Ved.${ext} ]; then
     if [ "${imgType}" = "TOF" ]; then
         3dresample -overwrite -dxyz ${smalldim} ${smalldim} ${smalldim} -rmode Cu -prefix ${image}_upsampled.${ext} -inset ${image}_std${stdDenoised}_denoised.nii.gz
-        ${scriptpath}/ComputeVED.py ${image}_upsampled.${ext} ${image}_Ved.${ext} -m ${smalldim} -O -M 2.0 -t 0 -n 20 -s 2 -w 90 -I --out_folder "./${image}_iterations" 
+        ${scriptpath}/ComputeVED.py ${image}_upsampled.${ext} ${image}_Ved.${ext} -m ${small_scale} -O -M ${small_scale} -t 0 -n 15 -s 2 -w 90 -I --out_folder "./${image}_iterations" 
         #${scriptpath}/ComputeVED.py ${image}_upsampled.${ext} ${image}_Ved.${ext} -m ${smalldim} -M 6 -t 18 -n 10 -s 5 -w 25 #--generate_scale -D 'scales'
     elif [ "${imgType}" = "SWI" ]; then
         3dresample -overwrite -dxyz ${smalldim} ${smalldim} ${smalldim} -rmode Cu -prefix ${image}_upsampled.${ext} -inset ${image}_Contrasted.nii.gz
-        ${scriptpath}/ComputeVED.py ${image}_upsampled.${ext} ${image}_Ved.${ext} -m ${smalldim} -O -M 2.0 -t 0 -n 20 -s 2 -w 90 -I --out_folder "./${image}_iterations" 
+        ${scriptpath}/ComputeVED.py ${image}_upsampled.${ext} ${image}_Ved.${ext} -m ${small_scale} -O -M ${large_scale} -t 0 -n 15 -s 2 -w 90 -I --out_folder "./${image}_iterations" 
         #${scriptpath}/ComputeVED.py ${image}_upsampled.${ext} ${image}_Ved.${ext} -m ${smalldim} -M 6 -t 18 -n 10 -s 5 -w 25
     elif [ "${imgType}" = "OTHER" ]; then
         3dresample -overwrite -dxyz ${smalldim} ${smalldim} ${smalldim} -rmode Cu -prefix ${image}_upsampled.${ext} -inset ${image}_std${stdDenoised}_denoised.nii.gz
-        ${scriptpath}/ComputeVED.py ${image}_upsampled.${ext} ${image}_Ved.${ext} -m ${smalldim} -O -M 2.0 -t 0 -n 20 -s 2 -w 90 -I --out_folder "./${image}_iterations" 
+        ${scriptpath}/ComputeVED.py ${image}_upsampled.${ext} ${image}_Ved.${ext} -m ${small_scale} -O -M ${large_scale} -t 0 -n 15 -s 2 -w 90 -I --out_folder "./${image}_iterations" 
     fi
     rm -rf ./${image}_iterations
 else
