@@ -1,4 +1,4 @@
-# Braincharter Vasculature
+# Braincharter MRI Vasculature Extraction
 Region- and voxel-based probabilistic mapping of whole-brain veins and arteries (densities and diameter) in the MNI space. The initial release of this work is based on the following paper:
 
 Bernier, M., Cunnane, S. C., & Whittingstall, K. (2018). The morphology of the human cerebrovascular system. Human Brain Mapping. https://doi.org/10.1002/hbm.24337
@@ -41,3 +41,6 @@ To call the process:
 ex: " extract_vessels.sh ToF 'nii.gz' TOF "
 
 This script is highly configurable. For now, unfortunately, the parameters need to be changed manually in that script. The most important one are when "ComputeVED.py" is called; This script most important parameter is the 'scale' parameter (-M), which should be put at half the maximum expected vessel size. Further down is the threshold parameters (postprocessing) that can be modified. It was automatic before, but was not consistant across image types.
+
+### Output
+(TODO)
