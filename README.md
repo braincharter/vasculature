@@ -15,6 +15,8 @@ The folders contains, for SWI and ToF:
 - CAT_data_VED.nii.gz: The output of the extraction itself, unthresholded, where all subjects are concatenated in a 4D file
 - CAT_data_VED_thresh.nii.gz: The output of the extraction itself, thresholded, where all subjects are concatenated in a 4D file
 
+TODO: Add the computed MNI regional templates 
+
 TODO: Add the script to create the template
 
 ## Installation
