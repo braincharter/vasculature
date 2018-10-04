@@ -8,7 +8,7 @@ The initial work, based on VMTK, was produced during Alexandre Bizeau's master p
 
 > Bizeau, A., Gilbert, G., Bernier, M., Huynh, M. T., Bocti, C., Descoteaux, M., & Whittingstall, K. (2017). Stimulus-evoked changes in cerebral vessel diameter: A study in healthy humans. Journal of Cerebral Blood Flow & Metabolism, 38(3), 0271678X1770194. https://doi.org/10.1177/0271678X17701948
 
-*NOTE: The script is being currently updated for more stable results across scanners and image types.*
+***NOTE: The script is being currently updated for more stable results across scanners and image types.*
 
 ## Template
 
