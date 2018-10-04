@@ -1,17 +1,14 @@
 # Braincharter MRI Vasculature Extraction
+
 Region- and voxel-based probabilistic mapping of whole-brain veins and arteries (densities and diameter) in the MNI space. The initial release of this work is based on the following paper:
 
-```
-Bernier, M., Cunnane, S. C., & Whittingstall, K. (2018). The morphology of the human cerebrovascular system. Human Brain Mapping. https://doi.org/10.1002/hbm.24337
-```
+> Bernier, M., Cunnane, S. C., & Whittingstall, K. (2018). The morphology of the human cerebrovascular system. Human Brain Mapping. https://doi.org/10.1002/hbm.24337
 
 The initial work, based on VMTK, was produced during Alexandre Bizeau's master project for which a was involved as a technical supervisor/advisor. Braincharter's algorithm was built upon his framework.
 
-```
-Bizeau, A., Gilbert, G., Bernier, M., Huynh, M. T., Bocti, C., Descoteaux, M., & Whittingstall, K. (2017). Stimulus-evoked changes in cerebral vessel diameter: A study in healthy humans. Journal of Cerebral Blood Flow & Metabolism, 38(3), 0271678X1770194. https://doi.org/10.1177/0271678X17701948
-```
+> Bizeau, A., Gilbert, G., Bernier, M., Huynh, M. T., Bocti, C., Descoteaux, M., & Whittingstall, K. (2017). Stimulus-evoked changes in cerebral vessel diameter: A study in healthy humans. Journal of Cerebral Blood Flow & Metabolism, 38(3), 0271678X1770194. https://doi.org/10.1177/0271678X17701948
 
-* NOTE: The script is being currently updated for more stable results across scanners and image types.*
+*NOTE: The script is being currently updated for more stable results across scanners and image types.*
 
 ## Template
 
