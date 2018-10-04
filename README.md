@@ -7,7 +7,15 @@ Bernier, M., Cunnane, S. C., & Whittingstall, K. (2018). The morphology of the h
 
 ## Template
 
-The initial release of the arterial and vascular template (based on 41 healthy time-of-flight and susceptibility weighted imaging) are available to download here: https://www.dropbox.com/s/9ia72wg53m1ricc/Template_MNI_2018_41_subjects.zip?dl=0. The vascular maps are in their early stage and will be updated regularly (details to follow).
+The initial release of the arterial and vascular template (based on 41 healthy time-of-flight and susceptibility weighted imaging) are available to download on the following links.
+
+The vascular maps are in their early stage and will be updated regularly (details to follow).
+
+### Voxel-based
+
+Based on the algorithm and registration scheme described in the paper, the voxel-based densities are located here:
+
+https://www.dropbox.com/s/9ia72wg53m1ricc/Template_MNI_2018_41_subjects.zip?dl=0. 
 
 The folders contains, for SWI and ToF:
 - mean_data_VED.nii.gz: The output of the extraction itself, unthresholded, averaged across all subjects
@@ -15,7 +23,16 @@ The folders contains, for SWI and ToF:
 - CAT_data_VED.nii.gz: The output of the extraction itself, unthresholded, where all subjects are concatenated in a 4D file
 - CAT_data_VED_thresh.nii.gz: The output of the extraction itself, thresholded, where all subjects are concatenated in a 4D file
 
-TODO: Add the computed MNI regional templates 
+### Region-based
+
+Using functional (MSDL, BASC064) and anatomical (freesurfer, Harvard-Oxford) atlases, the extracted regional vascular densities are located here:
+
+https://www.dropbox.com/s/glh92ijd217bos2/Regional_atlas_vasculature_41%20subjects.zip?dl=0
+
+The folders contains, for SWI and ToF:
+- mean_template_data_VED.nii.gz: The output of the extraction itself, unthresholded, averaged across all subjects and across regions
+- CAT_template_data_VED.nii.gz: The output of the extraction itself, unthresholded and averaged across region, where all subjects are concatenated in a 4D file
+- Images showing the labels at two coordinates.
 
 TODO: Add the script to create the template
 
