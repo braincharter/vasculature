@@ -154,10 +154,13 @@ printf "\n+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n"
 printf "Step 0. Autobox. \n"
 printf "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n"
 if [ ! -f ${image}_autobox.${ext} ]; then
-   if [ "${imgType}" = "OTHER" ]; then
+   if [ "${imgType}" = "OTHER" ] || [ "${imgType}" = "SWI" ] ; then
       cp -rf ${image}.${ext} ${image}_autobox.${ext}
    else
-        3dAutobox -overwrite -prefix ${image}_autobox.${ext} -npad 3 ${image}.${ext}
+       3dAutobox -overwrite -prefix ${image}_autobox.${ext} -npad 6 ${image}.${ext}
+        if [ -f ${image}_mask.${ext} ]; then
+         3dresample -master ${image}_autobox.${ext} -input ${image}_mask.${ext} -prefix ${image}_mask.${ext} -overwrite
+       fi
    fi
 
 else
@@ -169,10 +172,10 @@ printf "Step 1. SkullStripping. \n"
 printf "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n"
 if [ ! -f ${image}_mask.${ext} ]; then
     if [ "${imgType}" = "TOF" ]; then
-        #3dSkullStrip -overwrite -mask_vol -input ${image}_autobox.${ext} -prefix ${image}_mask.${ext} -blur_fwhm 2 -use_edge -avoid_vent -touchup
+        3dSkullStrip -overwrite -mask_vol -input ${image}_autobox.${ext} -prefix ${image}_mask.${ext}
         #3dcalc -overwrite -a ${image}_autobox.${ext} -b ${image}_mask.${ext} -expr "step(b)*abs(a)" -prefix ${image}_ss.${ext} -datum short
-        bet ${image}_autobox.${ext} ${image}_ss.${ext} -R -m -f 0.95
-        mv ${image}_ss_mask.${ext} ${image}_mask.${ext}  
+        #bet ${image}_autobox.${ext} ${image}_ss.${ext} -R -m -f 0.95
+        #mv ${image}_automask.${ext} ${image}_mask.${ext}  
     elif [ "${imgType}" = "SWI" ]; then
         if [ ! -f ${image}_mask.${ext} ]; then
             if [ -f ${phase}.${ext} ] ; then
@@ -185,7 +188,7 @@ if [ ! -f ${image}_mask.${ext} ]; then
                 mv ${image}_ss_mask.${ext} ${image}_mask.${ext}    
             else
                 bet ${image}_autobox.${ext} ${image}_ss.${ext} -R -m -f 0.65
-                mv ${image}_ss_mask.${ext} ${image}_mask.${ext}  
+                mv ${image}_ss_mask.${ext} ${image}_mask.${ext}
             fi
         else
             printf "Mask already exists. Putting in same space as magnitude.\n"
@@ -204,7 +207,11 @@ printf "Step 2. Denoising with nl means and refit to space ORIG\n"
 printf "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n"
 
 if [ ! -f ${image}_std${stdDenoised}_denoised.nii.gz ]; then
-    ${scriptpath}/dipy_nlmeans.py -std 20 -mask ${image}_mask.${ext} -o ${image}_std${stdDenoised} ${image}_autobox.${ext}
+   if [ "${imgType}" = "OTHER" ]; then
+      ${scriptpath}/dipy_nlmeans.py -std 5 -mask ${image}_mask.${ext} -o ${image}_std${stdDenoised} ${image}_autobox.${ext}
+   else
+      ${scriptpath}/dipy_nlmeans.py -std 25 -mask ${image}_mask.${ext} -o ${image}_std${stdDenoised} ${image}_autobox.${ext}
+   fi
 else
     printf "Denoise file already exists for this subject.\n"
 fi
@@ -249,12 +256,13 @@ printf "Smallest dim : %s \n" ${smalldim}
 
 # Hack to change smallest diameter value (added to original)
 # smalldim=0.599
-a=0.5
+a=0.3
 b=`echo "scale=3; ${smalldim} * 1.2" | bc`
-#small_scale=$(( a > b ? a : b ))
-small_scale=0.5
-large_scale=`echo "scale=3; ${small_scale} * 4" | bc`
-large_scale_clarity=`echo "scale=3; ${small_scale} * 4" | bc`
+small_scale=$(( a > b ? a : b ))
+small_scale=$b
+small_scale=`echo "scale=3; ${small_scale}*0.8" | bc`
+large_scale=`echo "scale=3; ${small_scale} * 1.8" | bc`
+large_scale_clarity=`echo "scale=3; ${small_scale} * 3" | bc`
  
 if [ ! -f ${image}_Ved.${ext} ]; then
     if [ "${imgType}" = "TOF" ]; then
@@ -263,11 +271,11 @@ if [ ! -f ${image}_Ved.${ext} ]; then
         #${scriptpath}/ComputeVED.py ${image}_upsampled.${ext} ${image}_Ved.${ext} -m ${smalldim} -M 6 -t 18 -n 10 -s 5 -w 25 #--generate_scale -D 'scales'
     elif [ "${imgType}" = "SWI" ]; then
         3dresample -overwrite -dxyz ${smalldim} ${smalldim} ${smalldim} -rmode Cu -prefix ${image}_upsampled.${ext} -inset ${image}_Contrasted.nii.gz
-        ${scriptpath}/ComputeVED.py ${image}_upsampled.${ext} ${image}_Ved.${ext} -m ${small_scale} -O -M ${large_scale} -t 0 -n 15 -s 2 -w 90 -I --out_folder "./${image}_iterations" 
+        ${scriptpath}/ComputeVED.py ${image}_upsampled.${ext} ${image}_Ved.${ext} -m ${small_scale} -O -M ${large_scale} -t 0 -n 10 -s 2 -w 90 -I --out_folder "./${image}_iterations" 
         #${scriptpath}/ComputeVED.py ${image}_upsampled.${ext} ${image}_Ved.${ext} -m ${smalldim} -M 6 -t 18 -n 10 -s 5 -w 25
     elif [ "${imgType}" = "OTHER" ]; then
         3dresample -overwrite -dxyz ${smalldim} ${smalldim} ${smalldim} -rmode Cu -prefix ${image}_upsampled.${ext} -inset ${image}_std${stdDenoised}_denoised.nii.gz
-        ${scriptpath}/ComputeVED.py ${image}_upsampled.${ext} ${image}_Ved.${ext} -m ${small_scale} -O -M ${large_scale_clarity} -t 0 -n 15 -s 2 -w 90 -I --out_folder "./${image}_iterations" 
+        ${scriptpath}/ComputeVED.py ${image}_upsampled.${ext} ${image}_Ved.${ext} -m ${small_scale} -O -M ${large_scale_clarity} -t 0 -n 20 -s 2 -w 90 -I --out_folder "./${image}_iterations" 
     fi
     rm -rf ./${image}_iterations
 else
@@ -306,35 +314,55 @@ if [ ! -f ${image}_newVed_Thresh.${ext} ]; then
     3dTstat -max -prefix ${image}_newVed.nii.gz ${image}_Ved_scales.nii.gz
 
 
-    3dresample -overwrite -dxyz ${smalldim} ${smalldim} ${smalldim} -rmode Cu -prefix ${image}_mask_up.${ext} -inset ${image}_mask.${ext}
-    #3dmask_tool -overwrite -input ${image}_mask_up.${ext} -prefix ${image}_mask_ero.${ext} -dilate_input -5
+    if [ "${imgType}" = "SWI" ]; then
+      3dresample -overwrite -dxyz ${smalldim} ${smalldim} ${smalldim} -rmode Cu -prefix ${image}_mask_up.${ext} -inset ${image}_mask.${ext}
+      3dmask_tool -overwrite -input ${image}_mask.${ext} -prefix ${image}_mask_ero.${ext} -dilate_input -4
+	  3dcalc -overwrite -a ${image}_newVed.${ext} -b ${image}_mask_ero.${ext} -expr "step(b)*(a)" -prefix ${image}_newVed_masked.${ext}
+      3dcalc -overwrite -a ${image}_newVed_masked.${ext} -expr "astep(a,200)*(1-astep(a, 1000))*a + astep(a, 1000)*1000" -prefix ${image}_newVed_stretched.${ext} -datum short
+    elif [ "${imgType}" = "ToF" ]; then
+      3dresample -overwrite -dxyz ${smalldim} ${smalldim} ${smalldim} -rmode Cu -prefix ${image}_mask_up.${ext} -inset ${image}_mask.${ext}
+      3dmask_tool -overwrite -input ${image}_mask_up.${ext} -prefix ${image}_mask_ero.${ext} -dilate_input -7 1
+	   3dcalc -overwrite -a ${image}_newVed.${ext} -b ${image}_mask_ero.${ext} -expr "step(b)*(a)" -prefix ${image}_newVed_masked.${ext}
+      3dcalc -overwrite -a ${image}_newVed_masked.${ext} -expr "astep(a,200)*(1-astep(a, 1000))*a + astep(a, 1000)*1000" -prefix ${image}_newVed_stretched.${ext} -datum short
+	else
+	  3dresample -overwrite -master ${image}_mask.${ext} -inset ${image}_newVed.nii.gz -prefix ${image}_newVed_masked.nii.gz
+	  #3dresample -overwrite -master ${image}_mask.${ext} -inset ${image}_Ved.nii.gz -prefix ${image}_Ved_masked.nii.gz
+	  #3dresample -overwrite -master ${image}_mask.${ext} -inset ${image}_newVed.nii.gz -prefix ${image}_newVed_resamp.nii.gz
+    fi
     
-    ### Tricky thresh
-    3dcalc -overwrite -a ${image}_newVed.${ext} -b ${image}_mask_up.${ext} -expr "step(b)*(a)" -prefix ${image}_newVed_masked.${ext}
-    3dcalc -overwrite -a ${image}_newVed_masked.${ext} -expr "astep(a,200)*(1-astep(a, 1000))*a + astep(a, 1000)*1000" -prefix ${image}_newVed_stretched.${ext} -datum short
     3dcalc -overwrite -a ${image}_newVed_masked.${ext} -expr "astep(a, 50)" -prefix ${image}_newVed_50Thresh.${ext} -datum short
     3dcalc -overwrite -a ${image}_newVed_masked.${ext} -expr "astep(a, 100)" -prefix ${image}_newVed_100Thresh.${ext} -datum short
     3dcalc -overwrite -a ${image}_newVed_masked.${ext} -expr "astep(a, 200)" -prefix ${image}_newVed_200Thresh.${ext} -datum short
-    3dcalc -overwrite -a ${image}_newVed_masked.${ext} -expr "astep(a, 300)" -prefix ${image}_newVed_300Thresh.${ext} -datum short
+    #3dcalc -overwrite -a ${image}_newVed_masked.${ext} -expr "astep(a, 300)" -prefix ${image}_newVed_300Thresh.${ext} -datum short
     3dcalc -overwrite -a ${image}_newVed_masked.${ext} -expr "astep(a, 400)" -prefix ${image}_newVed_400Thresh.${ext} -datum short
-    3dcalc -overwrite -a ${image}_newVed_masked.${ext} -expr "astep(a, 500)" -prefix ${image}_newVed_500Thresh.${ext} -datum short
+    #3dcalc -overwrite -a ${image}_newVed_masked.${ext} -expr "astep(a, 500)" -prefix ${image}_newVed_500Thresh.${ext} -datum short
     3dcalc -overwrite -a ${image}_newVed_masked.${ext} -expr "astep(a, 600)" -prefix ${image}_newVed_600Thresh.${ext} -datum short
-    3dcalc -overwrite -a ${image}_newVed_masked.${ext} -expr "astep(a, 700)" -prefix ${image}_newVed_700Thresh.${ext} -datum short
-    3dcalc -overwrite -a ${image}_newVed_masked.${ext} -expr "astep(a, 800)" -prefix ${image}_newVed_800Thresh.${ext} -datum short
+    #3dcalc -overwrite -a ${image}_newVed_masked.${ext} -expr "astep(a, 700)" -prefix ${image}_newVed_700Thresh.${ext} -datum short
+    #3dcalc -overwrite -a ${image}_newVed_masked.${ext} -expr "astep(a, 800)" -prefix ${image}_newVed_800Thresh.${ext} -datum short
+    #3dcalc -overwrite -a ${image}_newVed_masked.${ext} -expr "astep(a, 900)" -prefix ${image}_newVed_900Thresh.${ext} -datum short
     3dcalc -overwrite -a ${image}_newVed_masked.${ext} -expr "astep(a, 100)" -prefix ${image}_newVed_Thresh.${ext} -datum short
     
+    3dmerge -dxyz=1 -isovalue -1clust 1.01 10 -prefix ${image}_newVed_200clean.${ext} ${image}_newVed_200Thresh.${ext}
     
+    3dcalc -overwrite -a ${image}_Ved.${ext} -b ${image}_mask_ero.${ext} -expr "step(b)*(a)" -prefix ${image}_Ved_masked.${ext}
+    3dcalc -overwrite -a ${image}_Ved_masked.${ext} -expr "astep(a,200)*(1-astep(a, 1000))*a + astep(a, 1000)*1000" -prefix ${image}_Ved_stretched.${ext} -datum short
+    
+    3dcalc -overwrite -a ${image}_Ved_masked.${ext} -expr "astep(a, 0.01)" -prefix ${image}_Ved_Thresh.${ext} -datum short
+     
+    #3dmerge -dxyz=1 -isovalue -1clust 1.01 10 -prefix ${image}_Ved_600clean.${ext} ${image}_Ved_600Thresh.${ext}
+    
+
 else
     printf "Processed VED files already exists for this subject.\n"
 fi
 
-printf "\n+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n"
+printf "\n+-+- +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n"
 printf "Step 5. Diameters extraction.\n"
 printf "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n"
-if [ ! -f ${image}_diameters.${ext} ]; then        
+if [ -f ${image}_diameters.${ext} ]; then        
     echo "Diameter Extraction"
     halfsize=`echo "scale=3; ${smalldim} / 2.0" | bc`
-    3dresample -overwrite -dxyz ${halfsize} ${halfsize} ${halfsize} -rmode Cu -prefix ${image}_Ved_Thresh_HALF.${ext} -inset ${image}_newVed_Thresh.${ext}
+    3dresample -overwrite -dxyz ${halfsize} ${halfsize} ${halfsize} -rmode Cu -prefix ${image}_Ved_Thresh_HALF.${ext} -inset ${image}_newVed_900Thresh.${ext}
     ${scriptpath}/ExtractDiameter.py ${image}_Ved_Thresh_HALF.${ext} ${image}_diameters_HALF.${ext}
     3dresample -overwrite -master ${image}_newVed_Thresh.${ext} -rmode Cu -prefix ${image}_diameters.${ext} -inset ${image}_diameters_HALF.${ext}
     rm -rf *HALF*
@@ -345,7 +373,7 @@ fi
 printf "\n+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n"
 printf "Step 6. Centerlines extraction.\n"
 printf "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n"
-if [ ! -f ${image}_centerdia.${ext} ]; then        
+if [ -f ${image}_centerdia.${ext} ]; then        
     echo "Centerlines Extraction"
     ${scriptpath}/ExtractCenterline.py ${image}_newVed_Thresh.${ext} ${image}_skel.${ext} 
     echo "Diameters in centerlines only"
