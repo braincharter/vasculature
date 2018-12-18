@@ -11,6 +11,7 @@
 #include "itkParametricBlindLeastSquaresDeconvolutionImageFilter.h"
 #include "itkRichardsonLucyDeconvolutionImageFilter.h"
 #include "itkIterativeDeconvolutionImageFilter.h"
+#include "itkLaplacianSharpeningImageFilter.h"
 #include "itkDiscreteGaussianImageFilter.h"
 #include "itkRescaleIntensityImageFilter.h"
 #include "vnl/vnl_math.h"
@@ -275,13 +276,11 @@ void MultiScaleHessian<TInputImage, THessianImage, TOutputImage>::GenerateData()
     castFilterFirst->SetInput(m_HessianToMeasureFilter->GetOutput());
  
     typename ImageWriterType::Pointer writerfirst = ImageWriterType::New();
-    writerfirst->SetFileName("Scale_NOWEINER_" + std::to_string(int(sigma*100)) + "_Vesselness.nii.gz");
+    writerfirst->SetFileName("Scale_NOWEINER_00" + std::to_string(int(sigma*100000)) + "_Vesselness.nii.gz");
     writerfirst->SetInput(castFilterFirst->GetOutput());
     writerfirst->Update();
     //////////////////////
   
-    
-    
     //APPLY A CONVOLUTION FILTER TO REVERSE THE SMOOTHING EFFECT (maybe try weiner)
     typedef itk::ProjectedLandweberDeconvolutionImageFilter<doubleImageType>  InverseFilterImageType;
     //typedef itk::RichardsonLucyDeconvolutionImageFilter<doubleImageType>  InverseFilterImageType;
@@ -335,27 +334,39 @@ void MultiScaleHessian<TInputImage, THessianImage, TOutputImage>::GenerateData()
     }
     thresholdBelow->ThresholdBelow(0.0001);
     thresholdBelow->SetOutsideValue(0);
+
+
+//Ignore above, it gives crappy results for Clarity
     
-    typename ThresholdImageFilterType::Pointer thresholdUpper  = ThresholdImageFilterType::New();
+    /*
+    typedef itk::ThresholdImageFilter <doubleImageType> ThresholdImageFilterType;
+    typename ThresholdImageFilterType::Pointer thresholdBelow  = ThresholdImageFilterType::New();
+    thresholdBelow->SetInput(m_HessianToMeasureFilter->GetOutput());
+    thresholdBelow->ThresholdBelow(0.0001);
+    thresholdBelow->SetOutsideValue(0);*/
+
+
+    /*typename ThresholdImageFilterType::Pointer thresholdUpper  = ThresholdImageFilterType::New();
     thresholdUpper->SetInput(thresholdBelow->GetOutput());
     thresholdUpper->ThresholdAbove(1.0);
-    thresholdUpper->SetOutsideValue(1.0);
+    thresholdUpper->SetOutsideValue(1.0);*/
+
+    typedef itk::LaplacianSharpeningImageFilter <doubleImageType, doubleImageType> LaplacianSharpeningFilterType;
+    typename LaplacianSharpeningFilterType::Pointer sharpened  = LaplacianSharpeningFilterType::New();
+    sharpened->SetInput(thresholdBelow->GetOutput());
     
-    
-    //Rescale from 1 to 1000, just to see what it does
     typedef itk::RescaleIntensityImageFilter<doubleImageType> RescaleFilterType;
     typename RescaleFilterType::Pointer rescaler = RescaleFilterType::New();
     rescaler->SetOutputMinimum(   0 );
     rescaler->SetOutputMaximum( 1000 );
-    rescaler->SetInput(thresholdUpper->GetOutput());
+    rescaler->SetInput(sharpened->GetOutput());
     
-
     //WRITE OUTPUT TO FILE
     typename CastFilterType::Pointer castFilter = CastFilterType::New();
     castFilter->SetInput(rescaler->GetOutput());
  
     typename ImageWriterType::Pointer writer = ImageWriterType::New();
-    writer->SetFileName("Scale_" + std::to_string(int(sigma*100)) + "_Vesselness.nii.gz");
+    writer->SetFileName("Scale_00" + std::to_string(int(sigma*100000)) + "_Vesselness.nii.gz");
     writer->SetInput(castFilter->GetOutput());
     writer->Update();
     //////////////////////

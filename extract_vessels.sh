@@ -6,6 +6,8 @@
 image=$1
 ext=$2
 imgType=$3
+scale_min=$4
+scale_max=$5
 
 scriptpath=`dirname $0`
 echo $scriptpath
@@ -78,6 +80,10 @@ function checkArg {
         printf "Value must not be a key.\n"    
         exit 
         ;;
+        -s|--scales)
+        printf "Value must not be a key.\n"    
+        exit 
+        ;;
         *)
         ;;
     esac
@@ -109,13 +115,20 @@ if(( $(echo "$# > 3" | bc -l) )); then
         ;;
         -c|--centerline)
         getCenterline=true
+        shift # past argument
         ;;
         -d|--diameters)
         getDiameters=true
+        shift # past argument
+        ;;
+        -s|--scales)
+        scale_min=$2
+        scale_max=$3
+        # past argument
         ;;
         *)
-        echo "unknow args!"
-        exit
+        #echo "unknow args!"
+        #exit
         ;;
     esac
     shift # past argument or value
@@ -148,7 +161,6 @@ echo GENERATE CENTERLINE = "${getCenterline}"
 ###############################################################################
 #                               Execution
 ###############################################################################
-
 
 printf "\n+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n"
 printf "Step 0. Autobox. \n"
@@ -256,14 +268,21 @@ printf "Smallest dim : %s \n" ${smalldim}
 
 # Hack to change smallest diameter value (added to original)
 # smalldim=0.599
-a=0.3
-b=`echo "scale=3; ${smalldim} * 1.2" | bc`
-small_scale=$(( a > b ? a : b ))
-small_scale=$b
-small_scale=`echo "scale=3; ${small_scale}*0.8" | bc`
-large_scale=`echo "scale=3; ${small_scale} * 1.8" | bc`
-large_scale_clarity=`echo "scale=3; ${small_scale} * 3" | bc`
- 
+
+if [ ! -z "$scale_min" ] && [ ! -z "$scale_max" ] ; then
+    small_scale=$scale_min
+    large_scale=$scale_max
+    large_scale_clarity=$scale_max
+else
+    a=0.3
+    b=`echo "scale=3; ${smalldim} * 1.2" | bc`
+    small_scale=$(( a > b ? a : b ))
+    small_scale=$b
+    small_scale=`echo "scale=3; ${small_scale}*0.8" | bc`
+    large_scale=`echo "scale=3; ${small_scale} * 1.8" | bc`
+    large_scale_clarity=`echo "scale=3; ${small_scale} * 3" | bc`
+fi
+
 if [ ! -f ${image}_Ved.${ext} ]; then
     if [ "${imgType}" = "TOF" ]; then
         3dresample -overwrite -dxyz ${smalldim} ${smalldim} ${smalldim} -rmode Cu -prefix ${image}_upsampled.${ext} -inset ${image}_std${stdDenoised}_denoised.nii.gz
