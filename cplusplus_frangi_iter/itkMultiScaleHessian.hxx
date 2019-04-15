@@ -14,6 +14,7 @@
 #include "itkLaplacianSharpeningImageFilter.h"
 #include "itkDiscreteGaussianImageFilter.h"
 #include "itkRescaleIntensityImageFilter.h"
+#include "itkSqrtImageFilter.h"
 #include "vnl/vnl_math.h"
 
 
@@ -269,6 +270,9 @@ void MultiScaleHessian<TInputImage, THessianImage, TOutputImage>::GenerateData()
    
 
     //WRITE OUTPUT TO FILE
+    std::string sig = std::to_string(int(sigma*100000));
+    std::string padded_sig = sig.insert(0,7-sig.length(), '0');
+    
     typedef itk::Image<float, ImageDimension> floatImageType;
     typedef itk::ImageFileWriter<floatImageType> ImageWriterType;
     typedef itk::CastImageFilter< doubleImageType, floatImageType > CastFilterType;
@@ -276,7 +280,7 @@ void MultiScaleHessian<TInputImage, THessianImage, TOutputImage>::GenerateData()
     castFilterFirst->SetInput(m_HessianToMeasureFilter->GetOutput());
  
     typename ImageWriterType::Pointer writerfirst = ImageWriterType::New();
-    writerfirst->SetFileName("Scale_NOWEINER_00" + std::to_string(int(sigma*100000)) + "_Vesselness.nii.gz");
+    writerfirst->SetFileName("Scale_NOWEINER_" + padded_sig + "_Vesselness.nii.gz");
     writerfirst->SetInput(castFilterFirst->GetOutput());
     writerfirst->Update();
     //////////////////////
@@ -355,18 +359,37 @@ void MultiScaleHessian<TInputImage, THessianImage, TOutputImage>::GenerateData()
     typename LaplacianSharpeningFilterType::Pointer sharpened  = LaplacianSharpeningFilterType::New();
     sharpened->SetInput(thresholdBelow->GetOutput());
     
+    //WRITE OUTPUT TO FILE
+    typename CastFilterType::Pointer castFilter = CastFilterType::New();
+    castFilter->SetInput(sharpened->GetOutput());
+ 
+    typename ImageWriterType::Pointer writer = ImageWriterType::New();
+    writer->SetFileName("Scale_processed_" + padded_sig + "_Vesselness.nii.gz");
+    writer->SetInput(castFilter->GetOutput());
+    writer->Update();
+    //////////////////////
+    
+    
+    typedef itk::SqrtImageFilter<doubleImageType,doubleImageType> SqrtFilterType;
+    typename SqrtFilterType::Pointer sqrter = SqrtFilterType::New();
+    sqrter->SetInput(sharpened->GetOutput());
+    
+    //typedef itk::ThresholdImageFilter <doubleImageType> ThresholdImageFilterType;
+    typename ThresholdImageFilterType::Pointer thresholdUpper  = ThresholdImageFilterType::New();
+    thresholdUpper->SetInput(sqrter->GetOutput());
+    thresholdUpper->ThresholdAbove(20.0);
+    thresholdUpper->SetOutsideValue(20.0);
+    
     typedef itk::RescaleIntensityImageFilter<doubleImageType> RescaleFilterType;
     typename RescaleFilterType::Pointer rescaler = RescaleFilterType::New();
     rescaler->SetOutputMinimum(   0 );
     rescaler->SetOutputMaximum( 1000 );
-    rescaler->SetInput(sharpened->GetOutput());
+    rescaler->SetInput(thresholdUpper->GetOutput());
+    
     
     //WRITE OUTPUT TO FILE
-    typename CastFilterType::Pointer castFilter = CastFilterType::New();
     castFilter->SetInput(rescaler->GetOutput());
- 
-    typename ImageWriterType::Pointer writer = ImageWriterType::New();
-    writer->SetFileName("Scale_00" + std::to_string(int(sigma*100000)) + "_Vesselness.nii.gz");
+    writer->SetFileName("Scale_rescaled_" + padded_sig + "_Vesselness.nii.gz");
     writer->SetInput(castFilter->GetOutput());
     writer->Update();
     //////////////////////
@@ -474,7 +497,7 @@ MultiScaleHessian<TInputImage, THessianImage, TOutputImage>::ComputeSigmaValue(
   }
 
   //HACK:
-  m_SigmaStepMethod = Self::EquispacedSigmaSteps;
+  m_SigmaStepMethod = Self::LogarithmicSigmaSteps;
 
   switch (m_SigmaStepMethod)
   {
