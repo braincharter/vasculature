@@ -90,17 +90,11 @@ void VesselnessMeasurement<TInputImage, TOutputImage>::ThreadedGenerateData(
 
   while (!it.IsAtEnd())
   {
-    EigenValueArrayType eigenValues;
+    EigenValueArrayType sortedEigenValues;
       
-    eigenCalculator.ComputeEigenValues(it.Get(), eigenValues);
+    eigenCalculator.SetOrderEigenMagnitudes( 1 );
+    eigenCalculator.ComputeEigenValues(it.Get(), sortedEigenValues);
 
-    // The eigenvalues are to be sorted |e1|<=|e2|<=...<=|eN|
-    EigenValueArrayType sortedEigenValues = eigenValues;
-    std::sort(sortedEigenValues.Begin(), sortedEigenValues.End(),
-              AbsLessEqualCompare());
-
-    // Following code will process the Frangi vesselness measure and the v4 from
-    // VED.
     const double lambda1 = sortedEigenValues[0];
     const double lambda2 = sortedEigenValues[1];
     const double lambda3 = sortedEigenValues[2];

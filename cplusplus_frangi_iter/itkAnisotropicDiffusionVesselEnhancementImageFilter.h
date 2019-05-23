@@ -44,14 +44,17 @@ public:
   typedef typename Superclass::InputImageType InputImageType;
   typedef typename Superclass::OutputImageType OutputImageType;
   typedef typename Superclass::PixelType PixelType;
-
-  typedef itk::Image<itk::DiffusionTensor3D<double>, 3>
-      DiffusionTensorImageType;
-
-  // Dimensionality of input and output data is assumed to be the same.
-  // It is inherited from the superclass.
+  
   static const unsigned int ImageDimension = Superclass::ImageDimension;
+  
+  typedef itk::Matrix<double, ImageDimension, ImageDimension> MatrixType;
+  typedef itk::Vector<double, ImageDimension> VectorType;
+  typedef itk::Vector<double, 6> mrtrixTensorType;
 
+  typedef itk::Image<itk::DiffusionTensor3D<double>, ImageDimension> DiffusionTensorImageType;
+  typedef itk::Image<VectorType, ImageDimension> PeakImageType;
+  typedef itk::Image<mrtrixTensorType, ImageDimension> MrtrixTensorImageType;
+  
   typedef itk::SymmetricSecondRankTensor<double, ImageDimension>
       TensorPixelType;
   typedef itk::Image<TensorPixelType, ImageDimension> TensorImageType;
@@ -73,10 +76,8 @@ public:
   typedef float ScalesPixelType;
   typedef itk::Image<ScalesPixelType, ImageDimension> ScalesImageType;
 
-  typedef itk::Matrix<double, ImageDimension, ImageDimension> MatrixType;
-
   typedef itk::Image<MatrixType, ImageDimension> OutputMatrixImageType;
-
+  
   typedef itk::FixedArray<double, ImageDimension> EigenValueArrayType;
 
   typedef itk::Image<EigenValueArrayType, ImageDimension>
@@ -238,6 +239,9 @@ private:
 
   TimeStepType m_TimeStep;
   typename DiffusionTensorImageType::Pointer m_DiffusionTensorImage;
+  typename PeakImageType::Pointer m_PeakImage;
+  typename MrtrixTensorImageType::Pointer m_MrtrixTensorImage;
+
   typename MultiScaleVesselnessFilterType::Pointer m_MultiScaleVesselnessFilter;
   typename HessianFilterType::Pointer m_HessianFilter;
 

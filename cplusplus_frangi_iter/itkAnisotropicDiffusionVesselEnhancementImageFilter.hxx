@@ -12,6 +12,9 @@
 #include "itkNeighborhoodAlgorithm.h"
 #include "itkNumericTraits.h"
 #include "itkVector.h"
+#include "vnl/vnl_math.h"
+#include "math.h"
+
 
 #include <list>
 
@@ -42,6 +45,8 @@ AnisotropicDiffusionVesselEnhancementImageFilter<TInputImage, TOutputImage>::
 {
   m_UpdateBuffer = UpdateBufferType::New();
   m_DiffusionTensorImage = DiffusionTensorImageType::New();
+  m_PeakImage = PeakImageType::New();
+  m_MrtrixTensorImage = MrtrixTensorImageType::New();
 
   this->SetNumberOfIterations(m_NumberOfIterations);
 
@@ -54,8 +59,8 @@ AnisotropicDiffusionVesselEnhancementImageFilter<TInputImage, TOutputImage>::
   m_HessianFilter = HessianFilterType::New();
   m_EigenVectorMatrixAnalysisFilter =
       EigenVectorMatrixAnalysisFilterType::New();
-  m_EigenVectorMatrixAnalysisFilter->SetDimension(TensorPixelType::Dimension);
-
+  m_EigenVectorMatrixAnalysisFilter->SetDimension(TensorPixelType::Dimension);m_EigenVectorMatrixAnalysisFilter->SetDimension(TensorPixelType::Dimension);
+ 
   m_MultiScaleVesselnessFilter = MultiScaleVesselnessFilterType::New();
 }
 
@@ -375,6 +380,22 @@ void AnisotropicDiffusionVesselEnhancementImageFilter<
   m_DiffusionTensorImage->SetRequestedRegion(output->GetRequestedRegion());
   m_DiffusionTensorImage->SetBufferedRegion(output->GetBufferedRegion());
   m_DiffusionTensorImage->Allocate();
+
+  m_MrtrixTensorImage->SetSpacing(output->GetSpacing());
+  m_MrtrixTensorImage->SetOrigin(output->GetOrigin());
+  m_MrtrixTensorImage->SetLargestPossibleRegion(
+      output->GetLargestPossibleRegion());
+  m_MrtrixTensorImage->SetRequestedRegion(output->GetRequestedRegion());
+  m_MrtrixTensorImage->SetBufferedRegion(output->GetBufferedRegion());
+  m_MrtrixTensorImage->Allocate();
+
+  m_PeakImage->SetSpacing(output->GetSpacing());
+  m_PeakImage->SetOrigin(output->GetOrigin());
+  m_PeakImage->SetLargestPossibleRegion(
+      output->GetLargestPossibleRegion());
+  m_PeakImage->SetRequestedRegion(output->GetRequestedRegion());
+  m_PeakImage->SetBufferedRegion(output->GetBufferedRegion());
+  m_PeakImage->Allocate();
 }
 
 // =============================================================================
@@ -461,11 +482,26 @@ void AnisotropicDiffusionVesselEnhancementImageFilter<
 
   typedef itk::ImageRegionIterator<DiffusionTensorImageType>
       DiffusionTensorIteratorType;
-
   DiffusionTensorIteratorType itDiff(
       m_DiffusionTensorImage,
       m_DiffusionTensorImage->GetLargestPossibleRegion());
   itDiff.GoToBegin();
+
+  typedef itk::ImageRegionIterator<PeakImageType>
+      PeakIteratorType;
+  PeakIteratorType itPeak(
+      m_PeakImage,
+      m_PeakImage->GetLargestPossibleRegion());
+  itPeak.GoToBegin();
+
+
+  typedef itk::ImageRegionIterator<MrtrixTensorImageType>
+      MrtrixTensorIteratorType;
+  MrtrixTensorIteratorType itMrtrix(
+      m_MrtrixTensorImage,
+      m_MrtrixTensorImage->GetLargestPossibleRegion());
+  itMrtrix.GoToBegin();
+
 
   std::cout << "(In UpdateDiffusionTensorImage) Compute D tensor. \n";
     
@@ -474,6 +510,8 @@ void AnisotropicDiffusionVesselEnhancementImageFilter<
   {
 
     typename DiffusionTensorImageType::PixelType tensor;
+    typename MrtrixTensorImageType::PixelType mrtrixtensor;
+    typename PeakImageType::PixelType peakvector;
    
     // Generate matrix "Q" with the eigenvectors of the Hessian matrix.
     const MatrixType hessianEigenVectorMatrix = itEigen.Get();
@@ -487,13 +525,29 @@ void AnisotropicDiffusionVesselEnhancementImageFilter<
     const double vesselnessValue = static_cast<double>(itHessian.Get());
     const double powedVesselness = vcl_pow(vesselnessValue, iS);
 
-    const double lambda1 = 1 + (m_WStrength - 1) * powedVesselness;
-    const double lambda2 = 1 + (m_Epsilon - 1) * powedVesselness;
+    /* 
+    "sensitivity,s 5.0"
+    "wStrength,w 25.0"
+    "epsilon,e 0.1"
+    */
+
+    if ( (eigenValueMatrix(0, 0)*eigenValueMatrix(0, 0)) < (eigenValueMatrix(1, 1)*eigenValueMatrix(1, 1)) )
+    {
+        std::cout << "ERROR!!" ;
+        std::cout << "ERROR!" ;
+        std::cout << "ERROR (sort values)..." ;
+    }
+
+    //const double newlambda1 = 1 + (m_WStrength-1) * powedVesselness;
+    //const double newlambda2 = 1 + (m_Epsilon-1) * powedVesselness;
+    const double newlambda1 = 1 + (m_WStrength) * powedVesselness;
+    const double newlambda2 = 1 + (m_Epsilon) * powedVesselness; 
+        //std::sqrt((eigenValueMatrix(1, 1)*eigenValueMatrix(1, 1) + eigenValueMatrix(2, 2)*eigenValueMatrix(2, 2)));
 
     // lambda3 = lambda2, no needs to create lamdba3.
-    eigenValueMatrix(0, 0) = lambda1;
-    eigenValueMatrix(1, 1) = lambda2;
-    eigenValueMatrix(2, 2) = lambda2;
+    eigenValueMatrix(0, 0) = newlambda1;
+    eigenValueMatrix(1, 1) = newlambda2;
+    eigenValueMatrix(2, 2) = newlambda2;
 
     const MatrixType productMatrix = hessianEigenVectorMatrix *
                                      eigenValueMatrix *
@@ -508,9 +562,24 @@ void AnisotropicDiffusionVesselEnhancementImageFilter<
 
     }
 
+    /////// create the vector image
+    /////// maybe also output the lambda 1 vector called peak (ordered by magnitude)
+    peakvector[0] = hessianEigenVectorMatrix(0,0) * newlambda1; 
+    peakvector[1] = hessianEigenVectorMatrix(1,0) * newlambda1;
+    peakvector[2] = hessianEigenVectorMatrix(2,0) * newlambda1;
+
+    // For MRTrix, they want: [volumes 0-5) D11, D22, D33, D12, D13, D23 
+    mrtrixtensor[0] = productMatrix(0, 0); mrtrixtensor[1] = productMatrix(1, 1);
+    mrtrixtensor[2] = productMatrix(2, 2); mrtrixtensor[3] = productMatrix(0, 1);
+    mrtrixtensor[4] = productMatrix(0, 2); mrtrixtensor[5] = productMatrix(1, 2); 
+    
+
+    itMrtrix.Set(mrtrixtensor);
+    itPeak.Set(peakvector);
     itDiff.Set(tensor);
       
-
+    ++itMrtrix;
+    ++itPeak;
     ++itDiff;
     ++itEigen;
     ++itHessian;
@@ -783,22 +852,25 @@ void AnisotropicDiffusionVesselEnhancementImageFilter<
 
     this->InitializeIteration();
 
-    if ((m_GenerateIterationFiles && iter == 0) || this->GetFrangiOnly())
+    //if ((m_GenerateIterationFiles && iter == 0) || this->GetFrangiOnly())
+    if ((iter == 0) || this->GetFrangiOnly())
     {
-        const std::string filename = "frangi_only_vesselness_measure.nii.gz";
+    
+        //WRITE OUTPUT TO FILE
+        typedef itk::ImageFileWriter<MrtrixTensorImageType> ImageMRTRIXWriterType;
+        typename ImageMRTRIXWriterType::Pointer writer_mrtrix = ImageMRTRIXWriterType::New();
+        const std::string filename2 = "diffusion_mrtrix_tensor_D11_D22_D33_D12_D13_D23.nii.gz";
+        writer_mrtrix->SetFileName(filename2);
+        writer_mrtrix->SetInput(m_MrtrixTensorImage);
+        writer_mrtrix->Update();
 
         //WRITE OUTPUT TO FILE
-        typedef itk::Image<float, ImageDimension> floatImageType;
-        typedef itk::ImageFileWriter<floatImageType> ImageWriterType;
-
-        typedef itk::CastImageFilter< OutputImageType, floatImageType > CastFilterType;
-        typename CastFilterType::Pointer castFilter = CastFilterType::New();
-        castFilter->SetInput(m_MultiScaleVesselnessFilter->GetOutput());
-
-        typename ImageWriterType::Pointer writer = ImageWriterType::New();
-        writer->SetFileName(filename);
-        writer->SetInput(castFilter->GetOutput());
-        writer->Update();
+        typedef itk::ImageFileWriter<PeakImageType> ImagePEAKWriterType;
+        typename ImagePEAKWriterType::Pointer writer_peaks = ImagePEAKWriterType::New();
+        const std::string filename3 = "diffusion_peaks.nii.gz";
+        writer_peaks->SetFileName(filename3);
+        writer_peaks->SetInput(m_PeakImage);
+        writer_peaks->Update();
 
 
         if (this->GetFrangiOnly())

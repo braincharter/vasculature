@@ -231,20 +231,7 @@ void MultiScaleHessian<TInputImage, THessianImage, TOutputImage>::GenerateData()
                                      filterStep);
   }
 
-///////////////
 
-  /*typedef itk::Image<double, OutputImageType::ImageDimension> LambdaImageType;
-  typename LambdaImageType::Pointer lastHighLambda3;
-  lastHighLambda3 = LambdaImageType::New();
-  lastHighLambda3->SetSpacing(this->GetOutput()->GetSpacing());
-  lastHighLambda3->SetOrigin(this->GetOutput()->GetOrigin());
-  lastHighLambda3->SetLargestPossibleRegion(this->GetOutput()->GetLargestPossibleRegion());
-  lastHighLambda3->SetRequestedRegion(this->GetOutput()->GetRequestedRegion());
-  lastHighLambda3->SetBufferedRegion(this->GetOutput()->GetBufferedRegion());
-  lastHighLambda3->Allocate();
-  lastHighLambda3->FillBuffer( itk::NumericTraits< double >::Zero );
-  m_HessianToMeasureFilter->SetLastHighLambda3(lastHighLambda3) ;*/
-  
   int scalemax= m_NumberOfSigmaSteps-1 ;
   for (int scaleLevel = scalemax; scaleLevel >= 0;
        --scaleLevel)
@@ -257,7 +244,17 @@ void MultiScaleHessian<TInputImage, THessianImage, TOutputImage>::GenerateData()
 
     m_HessianFilter->SetSigma(sigma);
     m_HessianToMeasureFilter->SetInput(m_HessianFilter->GetOutput());
-    
+
+    /*
+    m_HessianToMeasureFilter->GetFlippedHessian()->SetSpacing(this->GetOutput()->GetSpacing());
+    m_HessianToMeasureFilter->GetFlippedHessian()->SetOrigin(this->GetOutput()->GetOrigin());
+    m_HessianToMeasureFilter->GetFlippedHessian()->SetLargestPossibleRegion(this->GetOutput()->GetLargestPossibleRegion());
+    m_HessianToMeasureFilter->GetFlippedHessian()->SetRequestedRegion(this->GetOutput()->GetRequestedRegion());
+    m_HessianToMeasureFilter->GetFlippedHessian()->SetBufferedRegion(this->GetOutput()->GetBufferedRegion());
+    m_HessianToMeasureFilter->GetFlippedHessian()->Allocate();
+    m_HessianToMeasureFilter->GetFlippedHessian()->FillBuffer( itk::NumericTraits< double >::Zero );
+    */
+
     std::cout << "..doing first pass to obtain strongest Lambda per scale" << std::endl ; 
     m_HessianToMeasureFilter->FirstPassOn();
     m_HessianToMeasureFilter->Update(); //First pass to update strongest Lambda3
@@ -284,6 +281,18 @@ void MultiScaleHessian<TInputImage, THessianImage, TOutputImage>::GenerateData()
     writerfirst->SetInput(castFilterFirst->GetOutput());
     writerfirst->Update();
     //////////////////////
+
+    /*//////////////
+    const unsigned int vectorlength = 6; 
+    typedef itk::Vector<double, vectorlength> EigenVectorType;
+    typedef itk::Image<EigenVectorType, ImageDimension> newHessianImageType;
+    typedef itk::ImageFileWriter<newHessianImageType> ImageVectorWriterType;
+    typename ImageVectorWriterType::Pointer writerVec = ImageVectorWriterType::New();
+    writerVec->SetFileName("Hessian_" + padded_sig + "__D11_D22_D33_D12_D13_D23.nii.gz");
+    writerVec->SetInput(m_HessianToMeasureFilter->GetFlippedHessian());
+    writerVec->Update();
+    //////////////*/
+
   
     //APPLY A CONVOLUTION FILTER TO REVERSE THE SMOOTHING EFFECT (maybe try weiner)
     typedef itk::ProjectedLandweberDeconvolutionImageFilter<doubleImageType>  InverseFilterImageType;

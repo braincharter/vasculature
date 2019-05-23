@@ -2,6 +2,7 @@
 #define __itkVesselnessMeasurement_h
 
 #include "itkSymmetricSecondRankTensor.h"
+#include "itkSymmetricEigenVectorAnalysisImageFilter.h"
 #include "itkImageToImageFilter.h"
 
 //*\class HessianToObjectnessMeasureImageFilter
@@ -54,6 +55,21 @@ public:
   typedef itk::FixedArray<EigenValueType, ImageDimension> EigenValueArrayType;
   
   typedef itk::Image<double, OutputImageType::ImageDimension> LambdaImageType;
+  
+    //ADDED/////////
+  static const unsigned int vectorlength = 6; 
+  typedef itk::Vector<EigenValueType, vectorlength> 
+    EigenVectorArrayType;
+  typedef itk::Vector<EigenValueType, vectorlength> 
+    VectorType;
+  typedef itk::Matrix<EigenValueType, OutputImageType::ImageDimension, OutputImageType::ImageDimension>   
+    EigenVectorMatrixType;
+  typedef itk::Matrix<EigenValueType, OutputImageType::ImageDimension, OutputImageType::ImageDimension>   
+    MatrixType;
+  typedef itk::Image<EigenVectorArrayType, OutputImageType::ImageDimension>                
+    FlippedHessianArrayImageType;
+  ///////////////
+
 
   void UpdateMeasure(OutputImageType* newMeasure);
 
@@ -107,6 +123,9 @@ public:
   
   itkSetMacro(LastHighLambda3, typename LambdaImageType::Pointer);
   itkGetConstMacro(LastHighLambda3, typename LambdaImageType::Pointer);
+  
+  itkSetMacro(FlippedHessian, typename FlippedHessianArrayImageType::Pointer);
+  itkGetConstMacro(FlippedHessian, typename FlippedHessianArrayImageType::Pointer);
 
 #ifdef ITK_USE_CONCEPT_CHECKING
   itkConceptMacro(DoubleConvertibleToOutputCheck,
@@ -146,6 +165,25 @@ private:
   };
 
   typename LambdaImageType::Pointer m_LastHighLambda3;
+  typename FlippedHessianArrayImageType::Pointer m_FlippedHessian;
+
+/*
+        FORMAT
+      myTensor = mIt.Get();
+      myMatrix[0][0] = myTensor[0]; D11
+      myMatrix[0][1] = myTensor[1]; D12
+      myMatrix[0][2] = myTensor[2]; D13
+      myMatrix[1][0] = myTensor[1]; D21
+      myMatrix[1][1] = myTensor[3]; D22
+      myMatrix[1][2] = myTensor[4]; D23
+      myMatrix[2][0] = myTensor[2]; D31
+      myMatrix[2][1] = myTensor[4]; D32
+      myMatrix[2][2] = myTensor[5]; D33
+
+      For MRTrix, they want: (volumes 0-5) D11, D22, D33, D12, D13, D23 
+      myTensor[0], myTensor[3], myTensor[5], myTensor[1], myTensor[2], myTensor[4]
+*/
+
   double m_MinLambda;
   double m_Alpha;
   double m_Beta;

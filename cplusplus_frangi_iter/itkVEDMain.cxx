@@ -50,15 +50,15 @@ bool process_command_line(int argc, char** argv,
         "Multi-scale Hessian\n");
     multipleHessianVariable.add_options()(
         "sigmaMin,m",
-        boost::program_options::value<double>()->default_value(0.3),
+        boost::program_options::value<double>()->default_value(0.5),
         "The minimum sigma used for the multi-scale analysis. Usually the "
         "smallest resolution of the acquisition.")(
         "sigmaMax,M",
-        boost::program_options::value<double>()->default_value(6.0),
+        boost::program_options::value<double>()->default_value(4.0),
         "The maximum sigma used for the multi-scale analysis. Usually the "
         "biggest expected size of a vessel.")(
         "numberOfScale,n",
-        boost::program_options::value<int>()->default_value(10),
+        boost::program_options::value<int>()->default_value(5),
         "The number of scales created between the sigma min/max in the "
         "multi-scale analysis.");
 
@@ -86,10 +86,10 @@ bool process_command_line(int argc, char** argv,
         boost::program_options::value<double>()->default_value(5.0),
         "The sensitivity used in VED param.")(
         "wStrength,w",
-        boost::program_options::value<double>()->default_value(25.0),
+        boost::program_options::value<double>()->default_value(15.0),
         "The weigthed strength used in VED param.")(
         "epsilon,e",
-        boost::program_options::value<double>()->default_value(0.1),
+        boost::program_options::value<double>()->default_value(1.0),
         "The epsilon used in VED param.");
 
     boost::program_options::options_description flagVariable("Flags\n");
