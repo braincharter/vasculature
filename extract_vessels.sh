@@ -274,18 +274,22 @@ echo "Smallest dim : ${smalldim} \n"
 # smalldim=0.599
 
 if [ ! -z "$scale_min" ] && [ ! -z "$scale_max" ] ; then
+    echo "Scales inputted."
     small_scale=$scale_min
     large_scale=$scale_max
     large_scale_clarity=$scale_max
 else
+    echo "Scales not inputted.. will be based on smalldims = ${smalldim}"
     a=0.3
-    b=`echo "scale=3; ${smalldim} * 1.2" | bc`
-    small_scale=$(( a > b ? a : b ))
+    b=`echo "scale=3; ${smalldim} * 1.05" | bc`
+    #small_scale=$(( a > b ? a : b ))
     small_scale=$b
-    small_scale=`echo "scale=3; ${small_scale}*0.8" | bc`
+    #small_scale=`echo "scale=3; ${small_scale} * 0.8" | bc`
     large_scale=`echo "scale=3; ${small_scale} * 2.3" | bc`
-    large_scale_clarity=`echo "scale=3; ${small_scale} * 3" | bc`
+    large_scale_clarity=`echo "scale=3; ${small_scale} * 1.8" | bc`
 fi
+
+echo "small scales = ${small_scale}, large scales = ${large_scale}"
 
 if [ ! -f ${image}_Ved.${ext} ]; then
     if [ "${imgType}" = "TOF" ]; then
@@ -298,7 +302,7 @@ if [ ! -f ${image}_Ved.${ext} ]; then
         #${scriptpath}/ComputeVED.py ${image}_upsampled.${ext} ${image}_Ved.${ext} -m ${smalldim} -M 6 -t 18 -n 10 -s 5 -w 25
     elif [ "${imgType}" = "OTHER" ]; then
         3dresample -overwrite -dxyz ${smalldim} ${smalldim} ${smalldim} -rmode Cu -prefix ${image}_upsampled.${ext} -inset ${image}_Contrasted.${ext}
-        ${scriptpath}/ComputeVED.py ${image}_upsampled.${ext} ${image}_Ved.${ext} -m ${small_scale} -O -M ${large_scale_clarity} -t 1 -n 20 -s 2 -w 90 -I --out_folder "./${image}_iterations" 
+        ${scriptpath}/ComputeVED.py ${image}_upsampled.${ext} ${image}_Ved.${ext} -m ${small_scale} -O -M ${large_scale_clarity} -t 1 -n 15 -s 2 -w 90 -I --out_folder "./${image}_iterations" 
     fi
     rm -rf ./${image}_iterations
 else
@@ -382,6 +386,14 @@ if [ ! -f ${image}_Ved_corrected.${ext} ] || [ -f ${image}_Ved_scales_sqrt.${ext
     3dcalc -overwrite -a ${image}_Ved_corrected.${ext} -b ${image}_newmask.${ext} -expr "step(b)*astep(a,1.0)" -prefix ${image}_Ved_Thr.${ext} -datum short
     3dcalc -overwrite -a ${image}_newVed_corrected.${ext} -b ${image}_newmask.${ext} -expr "step(b)*astep(a,40.0)" -prefix ${image}_newVed_Thr.${ext} -datum short
     3dcalc -overwrite -a ${image}_newVed_unscaled_corrected.${ext} -b ${image}_newmask.${ext} -expr "step(b)*astep(a,1.0)" -prefix ${image}_newVed_unscaled_Thr.${ext} -datum short
+   
+    3dcalc -overwrite -a ${image}_Ved_corrected.${ext} -b ${image}_newmask.${ext} -expr "step(b)*astep(a,1.0)*log(a)*step(log(a))" -prefix ${image}_Ved_log.${ext}
+    3dcalc -overwrite -a ${image}_newVed_corrected.${ext} -b ${image}_newmask.${ext} -expr "step(b)*astep(a,40.0)*log(a)*step(log(a))" -prefix ${image}_newVed_log.${ext} 
+    3dcalc -overwrite -a ${image}_newVed_unscaled_corrected.${ext} -b ${image}_newmask.${ext} -expr "step(b)*astep(a,1.0)*log(a)*step(log(a))" -prefix ${image}_newVed_unscaled_log.${ext}
+    
+    3dcalc -overwrite -a ${image}_Ved_corrected.${ext} -b ${image}_newmask.${ext} -expr "step(b)*astep(a,1.0)*log(log(a))*step(log(a))" -prefix ${image}_Ved_loglog.${ext}
+    3dcalc -overwrite -a ${image}_newVed_corrected.${ext} -b ${image}_newmask.${ext} -expr "step(b)*astep(a,40.0)*log(log(a))*step(log(a))" -prefix ${image}_newVed_loglog.${ext} 
+    3dcalc -overwrite -a ${image}_newVed_unscaled_corrected.${ext} -b ${image}_newmask.${ext} -expr "step(b)*astep(a,1.0)*log(log(a))*step(log(a))" -prefix ${image}_newVed_unscaled_loglog.${ext}
     
     3dmask_tool -overwrite -dilate_inputs 1 -1 -input ${image}_Ved_Thr.${ext} -prefix ${image}_Ved_Thr_opened.${ext} 
     3dmask_tool -overwrite -dilate_inputs 1 -1 -input ${image}_newVed_Thr\.${ext} -prefix ${image}_newVed_Thr_opened.${ext} 
