@@ -68,3 +68,6 @@ This script is highly configurable. For now, unfortunately, the parameters need 
 
 ### Output
 (TODO)
+
+# License
+GNU General Public License v3.0
