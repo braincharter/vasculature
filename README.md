@@ -32,7 +32,7 @@ The folders contains, for SWI and ToF:
 
 Using functional (MSDL, BASC064) and anatomical (freesurfer, Harvard-Oxford) atlases, the extracted regional vascular densities are located here:
 
-https://www.dropbox.com/s/glh92ijd217bos2/Regional_atlas_vasculature_41%20subjects.zip?dl=0
+https://www.dropbox.com/s/0bcaqsgntne0sj2/Regional_atlas_vasculature_41%20subjects.zip?dl=0.
 
 The folders contains, for SWI and ToF:
 - mean_template_data_VED.nii.gz: The output of the extraction itself, unthresholded, averaged across all subjects and across regions
